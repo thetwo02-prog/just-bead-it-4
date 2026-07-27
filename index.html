@@ -420,6 +420,135 @@ a { text-decoration: none; color: inherit; }
 .mto-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
 .mto-title { font-size: 12px; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; }
 .mto-desc  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE  (≤ 768 px) — desktop styles untouched above
+═══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Navbar ───────────────────────────────────────── */
+  .navbar { padding: 0 16px; height: 56px; }
+  .nav-wordmark { font-size: 14px; letter-spacing: .08em; }
+  /* Cart is already in bottom nav — hide duplicate */
+  .cart-btn { display: none; }
+  /* Hide "Get Started" pill — Sign In is enough */
+  .btn-sm-lime { display: none; }
+  /* Hide user name text, keep avatar */
+  #nav-user-name { display: none; }
+
+  /* ── Hero ─────────────────────────────────────────── */
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 36px 20px 28px;
+    gap: 0;
+  }
+  .hero-art { display: none; }
+  .hero-headline { font-size: clamp(38px, 11vw, 54px); margin-bottom: 14px; }
+  .hero-sub { font-size: 14px; max-width: 100%; margin-bottom: 24px; }
+  .hero-ctas { flex-direction: column; gap: 10px; }
+  .hero-ctas .btn-lime,
+  .hero-ctas .btn-outline { width: 100%; }
+
+  /* ── Stats strip ──────────────────────────────────── */
+  .stats-strip { padding: 14px 20px; }
+  .stat-num { font-size: 22px; }
+  .stat-lbl { font-size: 10px; }
+
+  /* ── Sections ─────────────────────────────────────── */
+  .section { padding: 28px 16px; }
+  .sec-h2 { font-size: 20px; }
+  .designs-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .d-card { padding: 10px; }
+  .d-name { font-size: 13px; }
+
+  /* ── Features grid: 4 col → 2 col ────────────────── */
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .feat-card { padding: 18px 14px; gap: 10px; }
+  .feat-title { font-size: 13px; }
+  .feat-desc  { font-size: 12px; }
+
+  /* ── CTA banner ───────────────────────────────────── */
+  .cta-banner {
+    grid-template-columns: 1fr;
+    padding: 28px 20px;
+    margin: 0 16px;
+    border-radius: 20px;
+    gap: 18px;
+  }
+  .cta-banner h2 { font-size: 22px; }
+  .cta-banner p  { font-size: 13px; }
+
+  /* ── Footer ───────────────────────────────────────── */
+  .footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+    padding: 24px 16px;
+    margin-top: 40px;
+  }
+  .footer-links { gap: 16px; }
+
+  /* ── Builder — canvas full height, tools below ─────── */
+  .builder-shell {
+    height: calc(100vh - 56px - 72px);
+    height: calc(100dvh - 56px - 72px);
+  }
+  .builder-topbar {
+    padding: 7px 10px;
+    gap: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .builder-name-input { width: 80px; font-size: 12px; }
+  .topbar-btn { padding: 6px 9px; font-size: 10px; gap: 3px; white-space: nowrap; flex-shrink: 0; }
+  .topbar-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .gs-btn { font-size: 10px; padding: 5px 6px; }
+  .divider { margin: 0 2px; }
+
+  .builder-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .bldr-center { flex: 1; min-height: 0; order: 1; }
+  .bldr-left {
+    order: 2;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    height: 170px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 14px;
+    gap: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bldr-right { display: none; }
+  .swatches { gap: 8px; }
+  .swatch { width: 28px; height: 28px; }
+
+  /* ── Detail page: 2-col → single col ─────────────── */
+  .detail-wrap {
+    grid-template-columns: 1fr;
+    padding: 16px 16px 60px;
+    gap: 20px;
+  }
+  .detail-design-name { font-size: 20px; }
+  .detail-panel .card { padding: 16px; }
+  .total-row-price { font-size: 24px; }
+
+  /* ── Login / Auth page ────────────────────────────── */
+  #page-login .navbar { padding: 0 16px; }
+
+  /* ── Toasts: full-width on mobile ─────────────────── */
+  /* Override the inline fixed positioning for toasts */
+  body > div[style*="position:fixed"][style*="top:20px"] {
+    left: 16px !important;
+    right: 16px !important;
+    max-width: none !important;
+  }
+}
 </style>
 </head>
 <body>
