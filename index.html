@@ -908,10 +908,8 @@ a { text-decoration: none; color: inherit; }
         <div>
           <p class="panel-title">Colour Palette</p>
           <div class="pal-tabs" id="pal-tabs">
-            <button class="pal-tab active" onclick="setPalTab('all',this)">All</button>
-            <button class="pal-tab" onclick="setPalTab('warm',this)">Warm</button>
-            <button class="pal-tab" onclick="setPalTab('cool',this)">Cool</button>
-            <button class="pal-tab" onclick="setPalTab('mono',this)">Mono</button>
+            <button class="pal-tab active" onclick="setPalTab('standard',this)">Standard</button>
+            <button class="pal-tab" onclick="setPalTab('pastel',this)">Pastel</button>
           </div>
           <div class="swatches" id="swatches"></div>
 
@@ -1574,36 +1572,34 @@ window.addEventListener('popstate', e => {
 })
 
 /* ── Colour palettes ────────────────────────── */
-// Official Pyssla bead colours — all 20 from the real box
-const PYSSLA_COLORS = [
-  ['#1A1A1A','Black'],
-  ['#686868','Dark Grey'],
-  ['#C8C8C8','Light Grey'],
+const STANDARD_COLORS = [
+  ['#000000','Black'],
   ['#FFFFFF','White'],
-  ['#8B4513','Brown'],
-  ['#FFB3C6','Light Pink'],
-  ['#FF69B4','Pink'],
-  ['#DD1111','Red'],
-  ['#990000','Dark Red'],
-  ['#FF6600','Orange'],
-  ['#FFE600','Yellow'],
-  ['#38B000','Green'],
-  ['#1A6B00','Dark Green'],
-  ['#00B4D8','Turquoise'],
-  ['#88BBEE','Light Blue'],
-  ['#1166CC','Blue'],
-  ['#003087','Dark Blue'],
-  ['#C8A0E8','Lavender'],
-  ['#8B2FC9','Purple'],
+  ['#D80606','Red'],
+  ['#0657D8','Blue'],
+  ['#1FAA03','Green'],
+  ['#FFE016','Yellow'],
+  ['#F2741A','Orange'],
+  ['#FF66B7','Pink'],
+  ['#BE88EA','Purple'],
+  ['#3A0909','Brown'],
+]
+const PASTEL_COLORS = [
+  ['#93D3E2','Pastel Blue'],
+  ['#ACBF33','Pastel Green'],
+  ['#F7EE45','Pastel Yellow'],
+  ['#EDA250','Pastel Orange'],
+  ['#F2BFD2','Pastel Pink'],
+  ['#C5B7DA','Pastel Purple'],
+  ['#9E9C9D','Pastel Grey'],
+  ['#E0BEA8','Pastel Sand'],
 ]
 const PALETTES = {
-  all:   PYSSLA_COLORS,
-  warm:  PYSSLA_COLORS.filter(c => ['#FFB3C6','#FF69B4','#DD1111','#990000','#FF6600','#FFE600','#8B4513'].includes(c[0])),
-  cool:  PYSSLA_COLORS.filter(c => ['#38B000','#1A6B00','#00B4D8','#88BBEE','#1166CC','#003087','#C8A0E8','#8B2FC9'].includes(c[0])),
-  mono:  PYSSLA_COLORS.filter(c => ['#1A1A1A','#686868','#C8C8C8','#FFFFFF','#8B4513'].includes(c[0])),
+  standard: STANDARD_COLORS,
+  pastel:   PASTEL_COLORS,
 }
-let curPalTab = 'all'
-let selColor  = '#1A1A1A'
+let curPalTab = 'standard'
+let selColor  = '#000000'
 let selTool   = 'pencil'
 
 function setPalTab(tab, btn) {
