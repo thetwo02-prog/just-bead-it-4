@@ -1,0 +1,19 @@
+{
+  "name": "Just Bead It – Custom Bead Art",
+  "short_name": "Just Bead It",
+  "description": "Design your own custom Just Bead It bead art. We make it for you!",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#EDE8DC",
+  "theme_color": "#EDE8DC",
+  "orientation": "any",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%23EDE8DC'/%3E%3Ccircle cx='128' cy='128' r='52' fill='%23E8547A'/%3E%3Ccircle cx='256' cy='128' r='52' fill='%23FFE600'/%3E%3Ccircle cx='384' cy='128' r='52' fill='%2338B000'/%3E%3Ccircle cx='128' cy='256' r='52' fill='%23C4D929'/%3E%3Ccircle cx='256' cy='256' r='52' fill='%238B5CF6'/%3E%3Ccircle cx='384' cy='256' r='52' fill='%230066CC'/%3E%3Ccircle cx='128' cy='384' r='52' fill='%23FB5607'/%3E%3Ccircle cx='256' cy='384' r='52' fill='%23E8547A'/%3E%3Ccircle cx='384' cy='384' r='52' fill='%23FFE600'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
