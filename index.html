@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='28' fill='%23EDE8DC'/%3E%3Ccircle cx='30' cy='30' r='12' fill='%23E8547A'/%3E%3Ccircle cx='60' cy='30' r='12' fill='%23FFE600'/%3E%3Ccircle cx='90' cy='30' r='12' fill='%2338B000'/%3E%3Ccircle cx='30' cy='60' r='12' fill='%23C4D929'/%3E%3Ccircle cx='60' cy='60' r='12' fill='%238B5CF6'/%3E%3Ccircle cx='90' cy='60' r='12' fill='%230066CC'/%3E%3Ccircle cx='30' cy='90' r='12' fill='%23FB5607'/%3E%3Ccircle cx='60' cy='90' r='12' fill='%23E8547A'/%3E%3Ccircle cx='90' cy='90' r='12' fill='%23FFE600'/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 /* ─── Reset & Variables ─────────────────────────────── */
@@ -538,6 +539,9 @@ a { text-decoration: none; color: inherit; }
   .detail-panel .card { padding: 16px; }
   .total-row-price { font-size: 24px; }
 
+  /* ── Sign-in banner ──────────────────────────────── */
+  #signin-banner { padding: 10px 16px; font-size: 12px; }
+
   /* ── Login / Auth page ────────────────────────────── */
   #page-login .navbar { padding: 0 16px; }
 
@@ -585,8 +589,10 @@ a { text-decoration: none; color: inherit; }
     </div>
     <div class="nav-actions">
       <div id="nav-guest" style="display:flex;align-items:center;gap:8px">
-        <button class="btn-sm-outline" onclick="goPage('login')">Sign In</button>
-        <button class="btn-sm-lime" onclick="goPage('login'); switchAuthTab('signup')">Get Started</button>
+        <button class="btn-sm-lime" onclick="goPage('login')" style="display:flex;align-items:center;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Sign In
+        </button>
       </div>
       <div id="nav-user" style="display:none;align-items:center;gap:10px">
         <span id="nav-user-name" style="font-size:13px;font-weight:700;color:var(--dark)"></span>
@@ -602,6 +608,18 @@ a { text-decoration: none; color: inherit; }
       </button>
     </div>
   </nav>
+
+  <!-- Sign-in nudge banner (guests only) -->
+  <div id="signin-banner" style="background:var(--purple);color:#fff;padding:12px 40px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700">
+      <span style="font-size:18px">✨</span>
+      Sign in to save your designs, track your orders, and get the full experience
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <button onclick="goPage('login')" style="padding:7px 18px;border-radius:99px;border:none;background:#fff;color:var(--purple);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit">Sign In</button>
+      <button onclick="document.getElementById('signin-banner').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;line-height:1;padding:0 4px">×</button>
+    </div>
+  </div>
 
   <!-- Hero -->
   <div class="hero">
@@ -1064,11 +1082,6 @@ a { text-decoration: none; color: inherit; }
           <div>
             <label style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:5px">Email</label>
             <input id="auth-email" type="email" placeholder="you@example.com"
-              style="width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid var(--border);background:var(--cream);font-size:14px;font-weight:600;outline:none;box-sizing:border-box">
-          </div>
-          <div>
-            <label style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:5px">Password</label>
-            <input id="auth-pw" type="password" placeholder="••••••••"
               style="width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid var(--border);background:var(--cream);font-size:14px;font-weight:600;outline:none;box-sizing:border-box"
               onkeydown="if(event.key==='Enter')handleEmailAuth()">
           </div>
@@ -1082,47 +1095,18 @@ a { text-decoration: none; color: inherit; }
 
       </div><!-- /auth-form-panel -->
 
-      <!-- ── OTP verification panel ── -->
+      <!-- ── Magic link sent panel ── -->
       <div id="otp-panel" style="display:none">
-
-        <div style="text-align:center;margin-bottom:24px">
-          <div style="font-size:40px;margin-bottom:10px">📬</div>
-          <h2 style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--dark);margin-bottom:6px">Check your email</h2>
-          <p id="otp-sent-to" style="font-size:12px;color:var(--muted)">We sent a 6-digit code to your email</p>
+        <div style="text-align:center;padding:12px 0 24px">
+          <div style="font-size:52px;margin-bottom:16px">📬</div>
+          <h2 style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--dark);margin-bottom:10px">Check your email</h2>
+          <p id="otp-sent-to" style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:6px"></p>
+          <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:28px">Click the <strong>Sign in</strong> link in the email — you'll be logged in instantly.</p>
+          <button class="btn-outline full" style="font-size:13px;padding:12px;margin-bottom:10px" onclick="resendOTP()">Resend email</button>
+          <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
+            <span style="cursor:pointer" onclick="backToLogin()">← Back to sign in</span>
+          </p>
         </div>
-
-        <!-- 6 digit boxes -->
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px">
-          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
-            style="width:42px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--cream);font-size:22px;font-weight:900;text-align:center;outline:none;color:var(--dark);box-sizing:border-box;transition:border-color .15s"
-            oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)">
-          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
-            style="width:42px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--cream);font-size:22px;font-weight:900;text-align:center;outline:none;color:var(--dark);box-sizing:border-box;transition:border-color .15s"
-            oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)">
-          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
-            style="width:42px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--cream);font-size:22px;font-weight:900;text-align:center;outline:none;color:var(--dark);box-sizing:border-box;transition:border-color .15s"
-            oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)">
-          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
-            style="width:42px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--cream);font-size:22px;font-weight:900;text-align:center;outline:none;color:var(--dark);box-sizing:border-box;transition:border-color .15s"
-            oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)">
-          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
-            style="width:42px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--cream);font-size:22px;font-weight:900;text-align:center;outline:none;color:var(--dark);box-sizing:border-box;transition:border-color .15s"
-            oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)">
-          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
-            style="width:42px;height:52px;border-radius:12px;border:2px solid var(--border);background:var(--cream);font-size:22px;font-weight:900;text-align:center;outline:none;color:var(--dark);box-sizing:border-box;transition:border-color .15s"
-            oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)">
-        </div>
-
-        <p id="otp-err" style="display:none;color:#DD1111;font-size:12px;font-weight:700;text-align:center;margin:0 0 10px"></p>
-        <p id="otp-countdown" style="font-size:11px;color:var(--muted);text-align:center;margin:0 0 16px"></p>
-
-        <button class="btn-lime full" style="margin-bottom:10px" onclick="verifyOTP()">Verify Code</button>
-        <button class="btn-outline full" style="font-size:13px;padding:12px" onclick="resendOTP()">Resend code</button>
-
-        <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px">
-          <span style="cursor:pointer" onclick="backToLogin()">← Back to sign in</span>
-        </p>
-
       </div><!-- /otp-panel -->
 
     </div>
@@ -1883,56 +1867,93 @@ const OWNER_EMAIL             = 'derekwilson79@gmail.com'
   }
 })()
 
-/* ── Auth system ───────────────────────────── */
-let currentUser = JSON.parse(localStorage.getItem('jbi_session') || 'null')
-let authTab = 'signin'
+/* ── Supabase ────────────────────────────────
+   Replace these two values with your own from:
+   Supabase dashboard → Project Settings → API
+   ─────────────────────────────────────────── */
+const SUPABASE_URL = 'https://mrbptquzgwfwucvurhiw.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_zr0FG57Eo9VPKpCrFQ5LSw_kpUPQxmD'
+const { createClient } = supabase
+const db = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-async function hashPassword(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw))
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+/* ── Auth system ───────────────────────────── */
+let currentUser = null
+let authTab = 'signin'
+let pendingOTPEmail = null
+let pendingOTPName  = null
+
+async function _setCurrentUser(user) {
+  const { data: profile } = await db.from('profiles').select('name').eq('id', user.id).single()
+  currentUser = {
+    id:    user.id,
+    email: user.email,
+    name:  (profile && profile.name) || user.user_metadata?.name || user.email.split('@')[0]
+  }
 }
 
-let loginFailCount = 0
-let loginLockUntil = 0
+db.auth.getSession().then(async ({ data: { session } }) => {
+  if (session) { await _setCurrentUser(session.user) }
+  updateNavForAuth()
+})
+
+db.auth.onAuthStateChange(async (event, session) => {
+  if (session) {
+    await _setCurrentUser(session.user)
+    updateNavForAuth()
+    if (event === 'SIGNED_IN') goPage('home')
+  } else {
+    currentUser = null
+    updateNavForAuth()
+  }
+})
 
 function updateNavForAuth() {
   const guest  = document.getElementById('nav-guest')
   const userEl = document.getElementById('nav-user')
   const avatar = document.getElementById('nav-avatar')
   const nameEl = document.getElementById('nav-user-name')
+  const banner = document.getElementById('signin-banner')
   if (!guest) return
   if (currentUser) {
     guest.style.display  = 'none'
     userEl.style.display = 'flex'
     avatar.textContent   = currentUser.name.charAt(0).toUpperCase()
     nameEl.textContent   = 'Hi, ' + currentUser.name.split(' ')[0] + '!'
+    if (banner) banner.style.display = 'none'
   } else {
     guest.style.display  = 'flex'
     userEl.style.display = 'none'
+    if (banner) banner.style.display = 'flex'
   }
 }
 
 function loginUser(user) {
   currentUser = user
-  localStorage.setItem('jbi_session', JSON.stringify(user))
   updateNavForAuth()
   goPage('home')
 }
 
 function signOut() {
-  showConfirm('Sign out of Just Bead It?', 'Sign Out', () => {
+  showConfirm('Sign out of Just Bead It?', 'Sign Out', async () => {
+    await db.auth.signOut()
     currentUser = null
-    localStorage.removeItem('jbi_session')
     updateNavForAuth()
+    goPage('home')
   })
 }
 
-function renderProfile() {
+async function renderProfile() {
   if (!currentUser) { goPage('home'); return }
-  const saves  = JSON.parse(localStorage.getItem('jbi_saves')  || '[]')
-  const orders = JSON.parse(localStorage.getItem('jbi_orders') || '[]')
+  const saves  = JSON.parse(localStorage.getItem('jbi_saves') || '[]')
   const wrap   = document.getElementById('profile-content')
   if (!wrap) return
+
+  // Fetch order count from Supabase
+  let orderCount = 0
+  if (currentUser.id) {
+    const { count } = await db.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id)
+    orderCount = count || 0
+  }
 
   wrap.innerHTML = `
     <!-- Avatar & name -->
@@ -1951,7 +1972,7 @@ function renderProfile() {
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:4px">Saved Items</div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center">
-        <div style="font-size:30px;font-weight:900;color:var(--purple)">${orders.length}</div>
+        <div style="font-size:30px;font-weight:900;color:var(--purple)">${orderCount}</div>
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:4px">Orders</div>
       </div>
     </div>
@@ -1964,7 +1985,6 @@ function renderProfile() {
   document.getElementById('profile-avatar').textContent = currentUser.name.charAt(0).toUpperCase()
   document.getElementById('profile-name').textContent   = currentUser.name
   document.getElementById('profile-email').textContent  = currentUser.email
-
 }
 
 function switchAuthTab(tab) {
@@ -1996,89 +2016,45 @@ function handleAppleAuth() {
 }
 
 async function handleEmailAuth() {
-  const email = document.getElementById('auth-email').value.trim()
-  const pw    = document.getElementById('auth-pw').value
-  const err   = document.getElementById('auth-err')
+  const email   = document.getElementById('auth-email').value.trim()
+  const err     = document.getElementById('auth-err')
   const showErr = msg => { err.textContent = msg; err.style.display = 'block' }
+  err.style.display = 'none'
 
-  if (!email || !pw) { showErr('Please fill in all fields.'); return }
-
-  const users = JSON.parse(localStorage.getItem('jbi_users') || '[]')
+  if (!email) { showErr('Please enter your email.'); return }
 
   if (authTab === 'signup') {
     const name = document.getElementById('auth-name').value.trim()
     if (!name) { showErr('Please enter your name.'); return }
-    if (pw.length < 6) { showErr('Password must be at least 6 characters.'); return }
-    if (users.find(u => u.email === email)) { showErr('An account with this email already exists. Try signing in.'); return }
-    const hash = await hashPassword(pw)
-    users.push({ name, email, pw: hash })
-    localStorage.setItem('jbi_users', JSON.stringify(users))
-    loginUser({ name, email, provider: 'email' })
-  } else {
-    if (Date.now() < loginLockUntil) {
-      const secs = Math.ceil((loginLockUntil - Date.now()) / 1000)
-      showErr(`Too many failed attempts. Try again in ${secs}s.`)
-      return
-    }
-    const hash = await hashPassword(pw)
-    const user = users.find(u => u.email === email && u.pw === hash)
-    if (!user) {
-      loginFailCount++
-      if (loginFailCount >= 5) {
-        loginLockUntil = Date.now() + 30000
-        loginFailCount = 0
-        showErr('Too many failed attempts. Locked for 30 seconds.')
-      } else {
-        showErr('Incorrect email or password.')
-      }
-      return
-    }
-    loginFailCount = 0
-    initiateOTP({ name: user.name, email: user.email, provider: 'email' })
+    pendingOTPName = name
   }
-}
+  pendingOTPEmail = email
 
-/* ── OTP system ────────────────────────────── */
-let pendingOTPUser = null
-let pendingOTPCode = null
-let otpExpiry      = null
-let otpCountdownId = null
-let otpFailCount   = 0
+  const btn = document.getElementById('auth-submit-btn')
+  btn.textContent = 'Sending…'; btn.disabled = true
 
-function generateOTP() {
-  return String(Math.floor(100000 + Math.random() * 900000))
-}
+  const { error } = await db.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: authTab === 'signup' }
+  })
 
-function initiateOTP(user) {
-  pendingOTPUser = user
-  pendingOTPCode = generateOTP()
-  otpExpiry = Date.now() + 5 * 60 * 1000
+  btn.textContent = authTab === 'signup' ? 'Create Account' : 'Sign In'
+  btn.disabled = false
 
-  if (EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_OTP_TEMPLATE_ID, {
-      to_email:  user.email,
-      user_name: user.name,
-      otp_code:  pendingOTPCode
-    }).catch(() => {})
-  } else {
-    showToast('Demo mode — your OTP is: ' + pendingOTPCode, 'info')
-  }
+  if (error) { showErr(error.message); return }
 
   document.getElementById('auth-form-panel').style.display = 'none'
   document.getElementById('otp-panel').style.display = 'block'
-  document.getElementById('otp-sent-to').textContent = 'We sent a 6-digit code to ' + user.email
+  document.getElementById('otp-sent-to').textContent = 'We sent a sign-in link to ' + email
   document.getElementById('otp-err').style.display = 'none'
-  document.querySelectorAll('.otp-digit').forEach(i => {
-    i.value = ''
-    i.style.borderColor = ''
-  })
+  document.querySelectorAll('.otp-digit').forEach(i => { i.value = ''; i.style.borderColor = '' })
   const first = document.querySelector('.otp-digit')
   if (first) first.focus()
-  startOTPCountdown()
 }
 
-function verifyOTP() {
-  const code = [...document.querySelectorAll('.otp-digit')].map(i => i.value).join('')
+/* ── OTP verification (powered by Supabase) ─ */
+async function verifyOTP() {
+  const code  = [...document.querySelectorAll('.otp-digit')].map(i => i.value).join('')
   const errEl = document.getElementById('otp-err')
 
   if (code.length < 6) {
@@ -2086,68 +2062,47 @@ function verifyOTP() {
     errEl.style.display = 'block'
     return
   }
-  if (Date.now() > otpExpiry) {
-    errEl.textContent = 'This code has expired — request a new one.'
+
+  const { data, error } = await db.auth.verifyOtp({
+    email: pendingOTPEmail,
+    token: code,
+    type:  'email'
+  })
+
+  if (error) {
+    errEl.textContent = 'Incorrect or expired code. Please try again.'
     errEl.style.display = 'block'
-    return
-  }
-  if (code !== pendingOTPCode) {
-    otpFailCount++
-    if (otpFailCount >= 3) {
-      clearOTPState()
-      document.getElementById('otp-panel').style.display = 'none'
-      document.getElementById('auth-form-panel').style.display = 'block'
-      showToast('Too many wrong attempts. Please sign in again.', 'error')
-      return
-    }
-    const left = 3 - otpFailCount
-    errEl.textContent = `Incorrect code. ${left} attempt${left === 1 ? '' : 's'} remaining.`
-    errEl.style.display = 'block'
-    document.querySelectorAll('.otp-digit').forEach(i => {
-      i.value = ''
-      i.style.borderColor = '#DD1111'
-    })
+    document.querySelectorAll('.otp-digit').forEach(i => { i.value = ''; i.style.borderColor = '#DD1111' })
     document.querySelector('.otp-digit').focus()
     return
   }
 
-  const user = pendingOTPUser
-  clearOTPState()
-  loginUser(user)
+  // Save name to profiles for new sign-ups
+  if (pendingOTPName && data.user) {
+    await db.from('profiles').upsert({ id: data.user.id, name: pendingOTPName })
+    pendingOTPName = null
+  }
+  pendingOTPEmail = null
+
+  document.getElementById('otp-panel').style.display = 'none'
+  document.getElementById('auth-form-panel').style.display = 'block'
+  goPage('home')
 }
 
-function resendOTP() {
-  if (!pendingOTPUser) return
-  clearOTPState()
-  initiateOTP(pendingOTPUser)
-  if (EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') showToast('New code sent!', 'success')
+async function resendOTP() {
+  if (!pendingOTPEmail) return
+  const { error } = await db.auth.signInWithOtp({
+    email: pendingOTPEmail,
+    options: { shouldCreateUser: authTab === 'signup' }
+  })
+  if (!error) showToast('New code sent!', 'success')
 }
 
 function backToLogin() {
-  clearOTPState()
+  pendingOTPEmail = null
+  pendingOTPName  = null
   document.getElementById('otp-panel').style.display = 'none'
   document.getElementById('auth-form-panel').style.display = 'block'
-}
-
-function clearOTPState() {
-  pendingOTPCode = null
-  otpExpiry = null
-  otpFailCount = 0
-  if (otpCountdownId) { clearInterval(otpCountdownId); otpCountdownId = null }
-}
-
-function startOTPCountdown() {
-  if (otpCountdownId) clearInterval(otpCountdownId)
-  const el = document.getElementById('otp-countdown')
-  otpCountdownId = setInterval(() => {
-    const rem = Math.max(0, otpExpiry - Date.now())
-    const m = Math.floor(rem / 60000)
-    const s = Math.floor((rem % 60000) / 1000)
-    if (el) el.textContent = rem > 0
-      ? 'Code expires in ' + m + ':' + String(s).padStart(2, '0')
-      : 'Code expired — request a new one'
-    if (rem <= 0) { clearInterval(otpCountdownId); otpCountdownId = null }
-  }, 1000)
 }
 
 function otpDigitInput(el) {
@@ -2220,13 +2175,28 @@ function removeCartItem(i) {
   renderCart()
 }
 
-function placeOrder() {
+async function placeOrder() {
   if (cartItems.length === 0) return
   const orderId   = 'JBI-' + Date.now().toString(36).toUpperCase()
   const total     = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
   const itemsText = cartItems.map(i => `${i.name} (${i.size}) x${i.qty} — ${i.price * i.qty} AED`).join('\n')
   const date      = new Date().toLocaleString()
 
+  // Write order to Supabase so seller can see it
+  console.log('Inserting order to Supabase...', orderId)
+  const { data: insertData, error: dbErr } = await db.from('orders').insert({
+    id:             orderId,
+    user_id:        currentUser?.id   || null,
+    customer_name:  currentUser?.name  || null,
+    customer_email: currentUser?.email || null,
+    items:          cartItems.slice(),
+    total,
+    date
+  }).select()
+  console.log('Supabase result — data:', insertData, '| error:', dbErr)
+  if (dbErr) showToast('DB error: ' + dbErr.message, 'error')
+
+  // Also save locally for the session's profile count
   const order = { id: orderId, items: cartItems.slice(), total, date, status: 'New' }
   const orders = JSON.parse(localStorage.getItem('jbi_orders') || '[]')
   orders.unshift(order)
