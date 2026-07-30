@@ -2184,7 +2184,7 @@ async function placeOrder() {
 
   // Write order to Supabase so seller can see it
   console.log('Inserting order to Supabase...', orderId)
-  const { data: insertData, error: dbErr } = await db.from('orders').insert({
+  const { error: dbErr } = await db.from('orders').insert({
     id:             orderId,
     user_id:        currentUser?.id   || null,
     customer_name:  currentUser?.name  || null,
@@ -2192,8 +2192,7 @@ async function placeOrder() {
     items:          cartItems.slice(),
     total,
     date
-  }).select()
-  console.log('Supabase result — data:', insertData, '| error:', dbErr)
+  })
   if (dbErr) showToast('DB error: ' + dbErr.message, 'error')
 
   // Also save locally for the session's profile count
