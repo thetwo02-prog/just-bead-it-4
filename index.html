@@ -3058,7 +3058,7 @@ const DESIGNS = [
   },
   {
     name:'Rainbow Arc', size:'Medium', price:'15 AED', tag:'tag-medium',
-    img:'images/rainbow-arc.jpg',
+    img:'rainbow-arc.jpg',
     pat:[
       [0,0,1,1,1,1,1,1,1,1,0,0],
       [1,1,1,2,2,2,2,2,2,1,1,1],
@@ -3218,12 +3218,20 @@ function showToast(msg, type) {
   setTimeout(() => { if (t.parentNode) { t.style.animation='toastOut .3s ease forwards'; setTimeout(()=>t.remove(),300) } }, 4000)
 }
 
-/* ── PWA Service Worker ───────────────────── */
+/* ── Service worker cleanup ───────────────────
+   Offline caching repeatedly served stale and truncated copies of
+   the site, so it is switched off. Instead of registering, we tear
+   down any worker and cache left on the device. sw.js also removes
+   itself, so browsers that already have it heal on their own.
+   ─────────────────────────────────────────── */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      reg.update()   // check for a newer worker on every visit
-    }).catch(() => {})
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => rs.forEach(r => r.unregister()))
+      .catch(() => {})
+    if (window.caches && caches.keys) {
+      caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {})
+    }
   })
 }
 </script>
