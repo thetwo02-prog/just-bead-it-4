@@ -1200,7 +1200,7 @@ a { text-decoration: none; color: inherit; }
 
 <div class="page" id="page-detail">
   <nav class="navbar">
-    <div class="nav-logo" onclick="goPage('home')">
+    <div class="nav-logo" onclick="goPage('home')" style="cursor:pointer">
       <span style="font-size:22px">🔲</span>
       <span class="nav-wordmark">Just Bead It</span>
     </div>
@@ -1208,6 +1208,10 @@ a { text-decoration: none; color: inherit; }
       <span style="font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.1em">Your Design</span>
     </div>
     <div class="nav-actions">
+      <button class="btn-sm-outline" onclick="goPage('home')" style="display:flex;align-items:center;gap:5px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </button>
       <button class="btn-sm-outline" onclick="goPage('builder')">← Edit Design</button>
       <button class="cart-btn" onclick="goPage('cart')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -1516,25 +1520,13 @@ function shapeContains(shape, nx, ny) {
   return true   // square — every peg exists
 }
 
-/* The round board has a flower-shaped gap at its centre —
-   two pegs over three over two, on the 8th to 10th rows. */
-const FLOWER = [[0,1],[0,2],[1,0],[1,1],[1,2],[2,1],[2,2]]
-function inFlower(row, col, n) {
-  const top = Math.floor((n - 3) / 2), left = Math.floor((n - 3) / 2)
-  const r = row - top, c = col - left
-  if (r < 0 || r > 2 || c < 0 || c > 2) return false
-  return FLOWER.some(([fr, fc]) => fr === r && fc === c)
-}
-
 /* Is there a peg at this cell on the current board? */
 function inBoard(row, col, shape, n) {
   shape = shape || boardShape
   n     = n || GRID_SIZE
   if (shape === 'square') return true
   const mid = (n - 1) / 2
-  if (!shapeContains(shape, (col - mid) / (n / 2), (row - mid) / (n / 2))) return false
-  if (shape === 'circle' && inFlower(row, col, n)) return false   // centre gap
-  return true
+  return shapeContains(shape, (col - mid) / (n / 2), (row - mid) / (n / 2))
 }
 
 /* Total pegs available on a board — the real capacity. */
