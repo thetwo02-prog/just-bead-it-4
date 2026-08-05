@@ -1174,6 +1174,20 @@ a { text-decoration: none; color: inherit; }
         </div>
       </div>
 
+      <!-- Special requests -->
+      <div class="feat-card" style="padding:20px 24px;margin-top:16px">
+        <h3 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px">Special Requests</h3>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.45">
+          Anything you'd like done differently? Keychains, magnets, a gift note, particular colours — tell us here.
+        </p>
+        <textarea id="order-note" rows="3" maxlength="500"
+          placeholder="e.g. I want these two strawberry ones made into keychains"
+          oninput="updateNoteCount()"
+          style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:var(--cream);font-family:inherit;font-size:13.5px;font-weight:600;color:var(--dark);resize:vertical;line-height:1.5"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px">
+          <span id="note-count" style="font-size:11px;font-weight:700;color:var(--muted)">0 / 500</span>
+        </div>
+      </div>
 
       <button class="btn-lime full" style="font-size:16px;padding:18px;margin-top:16px" onclick="placeOrder()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -1943,6 +1957,9 @@ const ORDER_STATUSES = [
   { id:'Done',        label:'Done',        cls:'st-done' },
 ]
 
+let showCompleted = false
+function toggleCompleted() { showCompleted = !showCompleted; renderAdminOrders() }
+
 async function setOrderStatus(orderId, status) {
   const row = document.querySelector(`.status-row[data-order="${orderId}"]`)
   if (row) {
@@ -1961,6 +1978,18 @@ async function setOrderStatus(orderId, status) {
     return
   }
   showToast('Marked as ' + status, 'success')
+
+  // Finished orders drop off the list so you only see what's left to make
+  if (status === 'Done' && !showCompleted) {
+    const card = row && row.closest('.admin-order')
+    if (card) {
+      card.style.transition = 'opacity .25s, transform .25s'
+      card.style.opacity = '0'; card.style.transform = 'translateX(14px)'
+      setTimeout(renderAdminOrders, 260)
+      return
+    }
+  }
+  renderAdminOrders()
 }
 
 async function renderAdminOrders() {
@@ -1975,6 +2004,9 @@ async function renderAdminOrders() {
 
   if (error) { wrap.innerHTML = '<p style="color:#DD1111">Failed to load orders.</p>'; return }
   if (!orders.length) { wrap.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">📭</div><p style="font-weight:700">No orders yet</p></div>'; return }
+
+  const doneN   = orders.filter(o => o.status === 'Done').length
+  const visible = showCompleted ? orders : orders.filter(o => o.status !== 'Done')
 
   // Summary strip
   const revenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0)
@@ -1993,10 +2025,20 @@ async function renderAdminOrders() {
         <div style="font-size:22px;font-weight:900;color:var(--dark)">${revenue}</div>
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px">AED Total</div>
       </div>
-    </div>`
+    </div>
+    ${doneN ? `<button onclick="toggleCompleted()" style="width:100%;padding:11px;margin-bottom:16px;border-radius:12px;border:1.5px solid var(--border);background:none;font-family:inherit;font-size:12.5px;font-weight:800;color:var(--muted);cursor:pointer">
+      ${showCompleted ? 'Hide' : 'Show'} ${doneN} completed order${doneN === 1 ? '' : 's'}
+    </button>` : ''}`
 
-  orders.forEach(order => {
+  if (!visible.length) {
+    wrap.insertAdjacentHTML('beforeend',
+      '<div style="text-align:center;padding:48px 0;color:var(--muted)"><div style="font-size:44px;margin-bottom:10px">✅</div><p style="font-weight:800">All caught up</p><p style="font-size:12.5px;margin-top:4px">Nothing left to make.</p></div>')
+    return
+  }
+
+  visible.forEach(order => {
     const card = document.createElement('div')
+    card.className = 'admin-order'
     card.style.cssText = 'background:var(--card);border-radius:20px;border:1px solid var(--border);padding:20px;margin-bottom:16px'
     const items = order.items || []
     const thumbs = items.filter(i => i.thumb).map(i =>
@@ -2021,6 +2063,11 @@ async function renderAdminOrders() {
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
         <strong style="color:var(--dark)">${order.customer_name || 'Guest'}</strong>${order.customer_email ? ' · ' + order.customer_email : ''}
       </div>
+      ${order.note ? `
+      <div style="margin-top:12px;padding:12px 14px;background:#FFF8E1;border:1.5px solid #FFE08A;border-radius:12px">
+        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:#8A6D00;margin-bottom:5px">✏️ Special request</div>
+        <div style="font-size:13px;font-weight:600;color:var(--dark);line-height:1.5;white-space:pre-wrap"></div>
+      </div>` : ''}
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px">Progress</div>
         <div class="status-row" data-order="${order.id}" style="display:flex;gap:6px">
@@ -2029,6 +2076,11 @@ async function renderAdminOrders() {
                     onclick="setOrderStatus('${order.id}', '${s.id}')">${s.label}</button>`).join('')}
         </div>
       </div>`
+    // Set the customer's note as text, never as HTML
+    if (order.note) {
+      const box = card.querySelector('[style*="FFF8E1"] div:last-child')
+      if (box) box.textContent = order.note
+    }
     wrap.appendChild(card)
   })
 }
@@ -2256,12 +2308,20 @@ function removeCartItem(i) {
   renderCart()
 }
 
+function updateNoteCount() {
+  const t = document.getElementById('order-note')
+  const c = document.getElementById('note-count')
+  if (t && c) c.textContent = t.value.length + ' / 500'
+}
+
 async function placeOrder() {
   if (cartItems.length === 0) return
   const orderId   = 'JBI-' + Date.now().toString(36).toUpperCase()
   const total     = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
   const itemsText = cartItems.map(i => `${i.name} (${i.size}) x${i.qty} — ${i.price * i.qty} AED`).join('\n')
   const date      = new Date().toLocaleString()
+  const noteEl    = document.getElementById('order-note')
+  const note      = noteEl ? noteEl.value.trim().slice(0, 500) : ''
 
   // Write order to Supabase so seller can see it
   console.log('Inserting order to Supabase...', orderId)
@@ -2275,12 +2335,13 @@ async function placeOrder() {
     total,
     date,
     order_type:     hasCustom ? 'custom' : 'standard',
-    status:         'Not Started'
+    status:         'Not Started',
+    note:           note || null
   })
   if (dbErr) showToast('DB error: ' + dbErr.message, 'error')
 
   // Also save locally for the session's profile count
-  const order = { id: orderId, items: cartItems.slice(), total, date, status: 'New' }
+  const order = { id: orderId, items: cartItems.slice(), total, date, note, status: 'New' }
   const orders = JSON.parse(localStorage.getItem('jbi_orders') || '[]')
   orders.unshift(order)
   localStorage.setItem('jbi_orders', JSON.stringify(orders))
@@ -2291,14 +2352,17 @@ async function placeOrder() {
       order_id: orderId,
       items:    itemsText,
       total:    total + ' AED',
+      note:     note || '(none)',
       date
     }).catch(() => {})
   }
 
   cartItems = []
+  if (noteEl) noteEl.value = ''
+  updateNoteCount()
   updateCartBadge()
   renderCart()
-  showToast('Order placed! 🎉', 'success')
+  showToast(note ? 'Order placed — we got your note! 🎉' : 'Order placed! 🎉', 'success')
   goPage('home')
 }
 function runAI() {
@@ -3129,17 +3193,26 @@ const DESIGNS = [
     name:'Rainbow Arc', size:'Medium', price:'15 AED', tag:'tag-medium',
     img:'rainbow-arc.jpg',
     pat:[
-      [0,0,1,1,1,1,1,1,1,1,0,0],
-      [1,1,1,2,2,2,2,2,2,1,1,1],
-      [1,2,2,2,2,2,2,2,2,2,2,1],
-      [2,2,3,3,3,3,3,3,3,3,2,2],
-      [2,3,3,3,4,4,4,4,3,3,3,2],
-      [3,3,4,4,4,4,4,4,4,4,3,3],
-      [3,4,4,5,5,5,5,5,5,4,4,3],
-      [3,4,4,5,6,6,6,6,5,4,4,3],
-      [3,4,5,6,0,0,0,0,6,5,4,3],
+      [0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0],
+      [0,0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,1,1,1,1,0,0,0,0],
+      [0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,0,0,0],
+      [0,0,0,1,1,1,2,2,2,3,3,3,3,3,3,3,3,2,2,2,1,1,1,0,0,0],
+      [0,0,0,1,1,2,2,2,3,4,4,4,4,4,4,4,4,3,2,2,2,1,1,0,0,0],
+      [0,0,1,1,2,2,2,3,4,4,5,5,5,5,5,5,4,4,3,2,2,2,1,1,0,0],
+      [0,0,1,1,2,2,3,4,4,4,5,5,5,5,5,5,4,4,4,3,2,2,1,1,0,0],
+      [0,0,1,1,2,3,4,4,4,5,6,6,6,6,6,6,5,4,4,4,3,2,1,1,0,0],
+      [0,1,1,2,2,3,4,4,5,6,6,6,0,0,6,6,6,5,4,4,3,2,2,1,1,0],
+      [0,1,1,2,2,3,4,5,5,6,0,0,0,0,0,0,6,5,5,4,3,2,2,1,1,0],
+      [0,1,1,2,2,3,4,5,5,6,0,0,0,0,0,0,6,5,5,4,3,2,2,1,1,0],
+      [0,1,1,2,2,3,4,5,5,6,0,0,0,0,0,0,6,5,5,4,3,2,2,1,1,0],
+      [0,0,2,2,2,3,4,7,7,7,0,0,0,0,0,0,7,7,7,4,3,2,2,2,0,0],
+      [7,7,2,7,3,3,4,7,7,7,0,0,0,0,0,0,7,7,7,4,3,3,7,2,7,7],
+      [2,2,7,7,7,7,7,7,7,7,7,0,0,0,0,7,7,7,7,7,7,7,7,7,2,2],
+      [2,2,7,7,7,7,7,7,7,7,7,0,0,0,0,7,7,7,7,7,7,7,7,7,2,2],
+      [0,0,2,7,7,7,7,7,7,7,0,0,0,0,0,0,7,7,7,7,7,7,7,2,0,0],
+      [0,0,7,7,7,7,7,7,7,7,0,0,0,0,0,0,7,7,7,7,7,7,7,7,0,0],
     ],
-    colors:{'1':'#DD1111','2':'#FF6600','3':'#FFE600','4':'#38B000','5':'#1166CC','6':'#8B2FC9'}
+    colors:{'1':'#D80606','2':'#F2741A','3':'#FFE016','4':'#1FAA03','5':'#0657D8','6':'#BE88EA','7':'#FFFFFF'}
   },
 ]
 
