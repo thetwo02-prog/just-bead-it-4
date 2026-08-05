@@ -392,6 +392,7 @@ a { text-decoration: none; color: inherit; }
   overflow: hidden; position: relative;
 }
 .detail-preview-wrap canvas { image-rendering: pixelated; width: 100%; height: 100%; display: block; }
+.detail-preview-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
 .sparkle { position: absolute; pointer-events: none; animation: sp 2s ease-in-out infinite; }
 .sp1 { left: 4%;  top: 8%;  color: var(--purple); font-size: 22px; }
 .sp2 { right: 6%; top: 5%;  color: #FFE600;       font-size: 28px; animation-delay: .6s; }
@@ -1205,6 +1206,7 @@ a { text-decoration: none; color: inherit; }
     <!-- Preview -->
     <div>
       <div class="detail-preview-wrap">
+        <img id="detail-photo" alt="" style="display:none">
         <canvas id="detail-canvas"></canvas>
         <div class="sparkle sp1">✦</div>
         <div class="sparkle sp2">✦</div>
@@ -2959,6 +2961,21 @@ let qty = 1
 function renderDetailCanvas() {
   const canvas = document.getElementById('detail-canvas')
   if (!canvas) return
+
+  // Show the real photograph when this design came from one and hasn't
+  // been edited — a customer who taps a photo should see that photo.
+  const photo = document.getElementById('detail-photo')
+  if (photo) {
+    if (detailPhotoStillValid()) {
+      photo.src = detailPhoto.img
+      photo.style.display = 'block'
+      canvas.style.display = 'none'
+      return
+    }
+    photo.style.display = 'none'
+    canvas.style.display = 'block'
+  }
+
   const wrap  = canvas.parentElement
   const size  = Math.max(wrap.getBoundingClientRect().width, 300)
   canvas.width = size; canvas.height = size
@@ -3160,10 +3177,27 @@ function loadDesignToGrid(design) {
   }
   grid = newGrid
   drawHistory = [cloneGrid(grid)]; histIdx = 0
+  // Remember the real photo so the order page can show it instead of
+  // the bead mock-up — but only while the design is untouched.
+  detailPhoto = design.img ? { img: design.img, snapshot: cloneGrid(grid) } : null
   // set design name in builder input
   const nm = document.getElementById('design-name')
   if (nm) nm.value = design.name
   runAI()
+}
+
+/* The photo only represents the design while it matches what was loaded.
+   Edit a single bead and we fall back to drawing the real grid. */
+let detailPhoto = null
+function detailPhotoStillValid() {
+  if (!detailPhoto) return false
+  const s = detailPhoto.snapshot
+  if (s.length !== grid.length) return false
+  for (let r = 0; r < s.length; r++) {
+    if (s[r].length !== grid[r].length) return false
+    for (let c = 0; c < s[r].length; c++) if (s[r][c] !== grid[r][c]) return false
+  }
+  return true
 }
 
 function renderHomeThumbs() {
