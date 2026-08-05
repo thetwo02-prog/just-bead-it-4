@@ -304,6 +304,19 @@ a { text-decoration: none; color: inherit; }
 /* Grid size selector */
 .grid-size-btns { display: flex; gap: 6px; }
 .board-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+/* Order progress buttons (admin) */
+.status-btn {
+  flex: 1; padding: 9px 4px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--card);
+  font-family: inherit; font-size: 11.5px; font-weight: 800;
+  color: var(--muted); cursor: pointer; transition: all .12s; white-space: nowrap;
+}
+.status-btn:hover:not(.active) { border-color: var(--muted); color: var(--dark); }
+.status-btn:disabled { opacity: .6; cursor: default; }
+.status-btn.active.st-none { background: var(--muted);  border-color: var(--muted);  color: #fff; }
+.status-btn.active.st-wip  { background: #F2741A;       border-color: #F2741A;       color: #fff; }
+.status-btn.active.st-done { background: #38B000;       border-color: #38B000;       color: #fff; }
 .gs-btn {
   flex: 1; padding: 8px 4px; border-radius: 10px;
   border: 1.5px solid var(--border); background: var(--card);
@@ -1918,6 +1931,36 @@ async function renderProfile() {
   document.getElementById('profile-email').textContent  = currentUser.email
 }
 
+/* ── Order progress ──────────────────────────
+   Owner-only. Writes straight to the orders row so the state
+   survives reloads and is visible from any device.
+   ─────────────────────────────────────────── */
+const ORDER_STATUSES = [
+  { id:'Not Started', label:'Not Started', cls:'st-none' },
+  { id:'In Progress', label:'In Progress', cls:'st-wip'  },
+  { id:'Done',        label:'Done',        cls:'st-done' },
+]
+
+async function setOrderStatus(orderId, status) {
+  const row = document.querySelector(`.status-row[data-order="${orderId}"]`)
+  if (row) {
+    // Optimistic: reflect the choice immediately, revert if the write fails
+    row.querySelectorAll('.status-btn').forEach((b, i) => {
+      b.className = 'status-btn' + (ORDER_STATUSES[i].id === status ? ' active ' + ORDER_STATUSES[i].cls : '')
+      b.disabled = true
+    })
+  }
+  const { error } = await db.from('orders').update({ status }).eq('id', orderId)
+  if (row) row.querySelectorAll('.status-btn').forEach(b => { b.disabled = false })
+
+  if (error) {
+    showToast('Could not save: ' + error.message, 'error')
+    renderAdminOrders()
+    return
+  }
+  showToast('Marked as ' + status, 'success')
+}
+
 async function renderAdminOrders() {
   if (!currentUser || currentUser.email !== OWNER_EMAIL) { goPage('home'); return }
   const wrap = document.getElementById('admin-orders-list')
@@ -1933,7 +1976,7 @@ async function renderAdminOrders() {
 
   // Summary strip
   const revenue = orders.reduce((s, o) => s + (Number(o.total) || 0), 0)
-  const customN = orders.filter(o => o.order_type === 'custom').length
+  const openN   = orders.filter(o => (o.status || 'Not Started') !== 'Done').length
   wrap.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
@@ -1941,8 +1984,8 @@ async function renderAdminOrders() {
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px">Orders</div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
-        <div style="font-size:22px;font-weight:900;color:var(--purple)">${customN}</div>
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px">Custom</div>
+        <div style="font-size:22px;font-weight:900;color:${openN ? '#F2741A' : '#38B000'}">${openN}</div>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px">To Make</div>
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
         <div style="font-size:22px;font-weight:900;color:var(--dark)">${revenue}</div>
@@ -1975,6 +2018,14 @@ async function renderAdminOrders() {
       </div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
         <strong style="color:var(--dark)">${order.customer_name || 'Guest'}</strong>${order.customer_email ? ' · ' + order.customer_email : ''}
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px">Progress</div>
+        <div class="status-row" data-order="${order.id}" style="display:flex;gap:6px">
+          ${ORDER_STATUSES.map(s => `
+            <button class="status-btn${(order.status || 'Not Started') === s.id ? ' active ' + s.cls : ''}"
+                    onclick="setOrderStatus('${order.id}', '${s.id}')">${s.label}</button>`).join('')}
+        </div>
       </div>`
     wrap.appendChild(card)
   })
@@ -2221,7 +2272,8 @@ async function placeOrder() {
     items:          cartItems.slice(),
     total,
     date,
-    order_type:     hasCustom ? 'custom' : 'standard'
+    order_type:     hasCustom ? 'custom' : 'standard',
+    status:         'Not Started'
   })
   if (dbErr) showToast('DB error: ' + dbErr.message, 'error')
 
