@@ -1499,7 +1499,7 @@ let boardId    = 'large'
 const BOARDS = [
   { id:'small',  name:'Small Square', shape:'square', size:14 },
   { id:'large',  name:'Large Square', shape:'square', size:26 },
-  { id:'circle', name:'Circle',       shape:'circle', size:26 },
+  { id:'circle', name:'Circle',       shape:'circle', size:17 },   // 17 pegs across, edge to edge
   { id:'heart',  name:'Heart',        shape:'heart',  size:26 },
 ]
 
@@ -1507,12 +1507,23 @@ const BOARDS = [
 function shapeContains(shape, nx, ny) {
   if (shape === 'circle') return nx*nx + ny*ny <= 1
   if (shape === 'heart') {
-    // Classic implicit heart: (x²+y²−1)³ − x²y³ ≤ 0, scaled to fill the board.
-    const x = nx * 1.32, y = -ny * 1.12 + 0.15
+    // Classic implicit heart: (x²+y²−1)³ − x²y³ ≤ 0, proportioned to match
+    // the real board — wider than tall, with a deep cleft between the lobes.
+    const x = nx * 0.95, y = -ny * 1.15 + 0.35
     const t = x*x + y*y - 1
     return t*t*t - x*x*y*y*y <= 0
   }
   return true   // square — every peg exists
+}
+
+/* The round board has a flower-shaped gap at its centre —
+   two pegs over three over two, on the 8th to 10th rows. */
+const FLOWER = [[0,1],[0,2],[1,0],[1,1],[1,2],[2,1],[2,2]]
+function inFlower(row, col, n) {
+  const top = Math.floor((n - 3) / 2), left = Math.floor((n - 3) / 2)
+  const r = row - top, c = col - left
+  if (r < 0 || r > 2 || c < 0 || c > 2) return false
+  return FLOWER.some(([fr, fc]) => fr === r && fc === c)
 }
 
 /* Is there a peg at this cell on the current board? */
@@ -1521,7 +1532,9 @@ function inBoard(row, col, shape, n) {
   n     = n || GRID_SIZE
   if (shape === 'square') return true
   const mid = (n - 1) / 2
-  return shapeContains(shape, (col - mid) / (n / 2), (row - mid) / (n / 2))
+  if (!shapeContains(shape, (col - mid) / (n / 2), (row - mid) / (n / 2))) return false
+  if (shape === 'circle' && inFlower(row, col, n)) return false   // centre gap
+  return true
 }
 
 /* Total pegs available on a board — the real capacity. */
