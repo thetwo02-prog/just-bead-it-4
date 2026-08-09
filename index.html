@@ -636,7 +636,7 @@ a { text-decoration: none; color: inherit; }
       <button class="cart-btn" onclick="goPage('cart')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         Cart
-        <div class="cart-badge" id="cart-badge" style="display:none">0</div>
+        <div class="cart-badge cart-badge-el" style="display:none">0</div>
       </button>
     </div>
   </nav>
@@ -1178,7 +1178,7 @@ a { text-decoration: none; color: inherit; }
       <div class="feat-card" style="padding:20px 24px;margin-top:16px">
         <h3 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px">Special Requests</h3>
         <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.45">
-          Anything you'd like done differently? Keychains, magnets, a gift note, particular colours — tell us here.
+          Anything you'd like done differently? Tell us here and we'll make it happen.
         </p>
         <textarea id="order-note" rows="3" maxlength="500"
           placeholder="Tell us how you'd like it made — keychain or magnet backing, colour swaps, gift wrapping, a message to include…"
@@ -1189,9 +1189,15 @@ a { text-decoration: none; color: inherit; }
         </div>
       </div>
 
-      <button class="btn-lime full" style="font-size:16px;padding:18px;margin-top:16px" onclick="placeOrder()">
+      <!-- Sign-in gate (shown to guests) -->
+      <div id="cart-signin-notice" style="display:none;margin-top:16px;padding:14px 16px;background:rgba(139,92,246,.09);border:1.5px solid var(--purple);border-radius:14px">
+        <div style="font-size:13.5px;font-weight:800;color:var(--dark);margin-bottom:3px">Sign in to place your order</div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.45">So we can reach you about your order and you can track it later.</div>
+      </div>
+
+      <button id="place-order-btn" class="btn-lime full" style="font-size:16px;padding:18px;margin-top:16px" onclick="placeOrder()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-        Place Order
+        <span id="place-order-label">Place Order</span>
       </button>
       <button class="btn-outline full" style="font-size:14px;padding:14px;margin-top:8px" onclick="goPage('builder')">+ Add Another Design</button>
     </div>
@@ -1215,7 +1221,7 @@ a { text-decoration: none; color: inherit; }
       <button class="btn-sm-outline" onclick="goPage('builder')">← Edit Design</button>
       <button class="cart-btn" onclick="goPage('cart')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-        Cart <div class="cart-badge" id="cart-badge" style="display:none">0</div>
+        Cart <div class="cart-badge cart-badge-el" style="display:none">0</div>
       </button>
     </div>
   </nav>
@@ -1487,7 +1493,10 @@ function renderSwatches() {
 /* ── Grid ──────────────────────────────────── */
 let GRID_SIZE = 26   // starts on the large square board
 let grid = makeGrid(GRID_SIZE)
-let drawHistory = [cloneGrid(grid)]; let histIdx = 0
+/* History entries carry the board they were made on, not just the
+   beads. Undoing across a board change used to restore a grid of the
+   wrong size and crash the canvas. */
+let drawHistory = []; let histIdx = -1
 let zoom = 1; let isDown = false; let hovCell = null
 
 function makeGrid(n) { return Array.from({length:n}, () => Array(n).fill(null)) }
@@ -1540,7 +1549,6 @@ function boardPegs(shape, n) {
 function setBoard(id) {
   const b = BOARDS.find(x => x.id === id)
   if (!b) return
-  pushHistory()
 
   if (b.size !== GRID_SIZE) {
     // Keep whatever artwork still fits, centred on the new board
@@ -1562,6 +1570,7 @@ function setBoard(id) {
     for (let c = 0; c < GRID_SIZE; c++)
       if (!inBoard(r, c)) grid[r][c] = null
 
+  pushHistory()   // record the new board so undo/redo can step across it
   syncBoardBtns()
   const sg = document.getElementById('stat-grid')
   if (sg) sg.textContent = b.shape === 'square' ? GRID_SIZE + ' × ' + GRID_SIZE : b.name
@@ -1580,6 +1589,7 @@ function initCanvas() {
   canvasEl = document.getElementById('bead-canvas')
   if (!canvasEl) return
   ctx = canvasEl.getContext('2d')
+  if (histIdx < 0) resetHistory()   // seed undo with the starting board
   resizeCanvas()
   bindCanvasEvents()
   drawCanvas()
@@ -1703,21 +1713,22 @@ function floodFill(r, c, tgt, rep) {
 function bindCanvasEvents() {
   canvasEl.onmousedown = e => {
     const cell = getCell(e); if (!cell) return
-    pushHistory(); isDown = true; applyTool(cell)
+    isDown = true; applyTool(cell)
   }
   canvasEl.onmousemove = e => {
     const cell = getCell(e); hovCell = cell
     if (isDown && cell && (selTool==='pencil'||selTool==='eraser')) applyTool(cell)
     else drawCanvas()
   }
-  canvasEl.onmouseup    = () => { isDown = false }
-  canvasEl.onmouseleave = () => { hovCell = null; isDown = false; drawCanvas() }
+  // A stroke is recorded when it finishes, so redo can restore it
+  canvasEl.onmouseup    = () => { if (isDown) { isDown = false; pushHistory() } }
+  canvasEl.onmouseleave = () => { hovCell = null; if (isDown) { isDown = false; pushHistory() } drawCanvas() }
 
   canvasEl.addEventListener('touchstart', e => {
     e.preventDefault()
     const touch = e.touches[0]
     const cell = getCell(touch); if (!cell) return
-    pushHistory(); isDown = true; applyTool(cell)
+    isDown = true; applyTool(cell)
   }, { passive: false })
   canvasEl.addEventListener('touchmove', e => {
     e.preventDefault()
@@ -1727,7 +1738,9 @@ function bindCanvasEvents() {
   }, { passive: false })
   canvasEl.addEventListener('touchend', e => {
     e.preventDefault()
-    isDown = false; hovCell = null; drawCanvas()
+    hovCell = null
+    if (isDown) { isDown = false; pushHistory() }
+    drawCanvas()
   }, { passive: false })
 }
 
@@ -1748,32 +1761,50 @@ function zoomReset() { zoom = 1; drawCanvas() }
    match one of the four boards. Falls back to a plain square.
    ─────────────────────────────────────────── */
 function setGridSize(n) {
-  GRID_SIZE = n; grid = makeGrid(n); drawHistory = [cloneGrid(grid)]; histIdx = 0; zoom = 1
+  GRID_SIZE = n; grid = makeGrid(n); zoom = 1
   boardShape = 'square'
   const match = BOARDS.find(b => b.shape === 'square' && b.size === n)
   boardId = match ? match.id : null
+  resetHistory()          // after the board is settled, so the snapshot matches
   syncBoardBtns()
   document.getElementById('stat-grid').textContent = n + ' × ' + n
   resizeCanvas(); drawCanvas()
 }
 
 /* ── History ─────────────────────────────────── */
+function snapshot() {
+  return { grid: cloneGrid(grid), size: GRID_SIZE, shape: boardShape, board: boardId }
+}
+function restoreSnapshot(s) {
+  grid       = cloneGrid(s.grid)
+  GRID_SIZE  = s.size
+  boardShape = s.shape
+  boardId    = s.board
+  syncBoardBtns()
+  const b  = BOARDS.find(x => x.id === boardId)
+  const sg = document.getElementById('stat-grid')
+  if (sg) sg.textContent = (b && b.shape !== 'square') ? b.name : GRID_SIZE + ' × ' + GRID_SIZE
+  resizeCanvas(); drawCanvas(); runAI()
+}
+function resetHistory() { drawHistory = [snapshot()]; histIdx = 0 }
+
 function pushHistory() {
+  if (histIdx < 0) { resetHistory(); return }   // first edit of the session
   drawHistory = drawHistory.slice(0, histIdx + 1)
-  drawHistory.push(cloneGrid(grid))
+  drawHistory.push(snapshot())
   if (drawHistory.length > 80) drawHistory.shift()
   histIdx = drawHistory.length - 1
 }
 function undoAction() {
   if (histIdx <= 0) return
-  histIdx--; grid = cloneGrid(drawHistory[histIdx]); drawCanvas(); runAI()
+  histIdx--; restoreSnapshot(drawHistory[histIdx])
 }
 function redoAction() {
   if (histIdx >= drawHistory.length-1) return
-  histIdx++; grid = cloneGrid(drawHistory[histIdx]); drawCanvas(); runAI()
+  histIdx++; restoreSnapshot(drawHistory[histIdx])
 }
 function clearCanvas() {
-  pushHistory(); grid = makeGrid(GRID_SIZE); drawCanvas(); runAI()
+  grid = makeGrid(GRID_SIZE); pushHistory(); drawCanvas(); runAI()
 }
 
 /* ── Stats ──────────────────────────────────── */
@@ -1795,7 +1826,7 @@ let cartItems = []
 
 function updateCartBadge() {
   const n = cartItems.length
-  document.querySelectorAll('#cart-badge').forEach(b => {
+  document.querySelectorAll('.cart-badge-el').forEach(b => {
     b.textContent = n; b.style.display = n > 0 ? '' : 'none'
   })
   const tb = document.getElementById('tab-cart-badge')
@@ -1836,6 +1867,7 @@ let currentUser = null
 let authTab = 'signin'
 let pendingOTPEmail = null
 let pendingOTPName  = null
+let afterLoginPage  = null   // where to return once they've signed in
 
 async function _setCurrentUser(user) {
   const { data: profile } = await db.from('profiles').select('name').eq('id', user.id).single()
@@ -1855,7 +1887,12 @@ db.auth.onAuthStateChange(async (event, session) => {
   if (session) {
     await _setCurrentUser(session.user)
     updateNavForAuth()
-    if (event === 'SIGNED_IN') goPage('home')
+    if (event === 'SIGNED_IN') {
+      // Send them back where they were headed (the cart, usually)
+      const dest = afterLoginPage || 'home'
+      afterLoginPage = null
+      goPage(dest)
+    }
   } else {
     currentUser = null
     updateNavForAuth()
@@ -2211,7 +2248,9 @@ async function verifyOTP() {
 
   document.getElementById('otp-panel').style.display = 'none'
   document.getElementById('auth-form-panel').style.display = 'block'
-  goPage('home')
+  const dest = afterLoginPage || 'home'
+  afterLoginPage = null
+  goPage(dest)
 }
 
 async function resendOTP() {
@@ -2304,6 +2343,13 @@ function renderCart() {
     list.appendChild(row)
   })
   sum.textContent = total + ' AED'
+
+  // Ordering requires an account, so say that up front rather than
+  // letting someone fill a cart and hit a wall at checkout.
+  const notice = document.getElementById('cart-signin-notice')
+  const label  = document.getElementById('place-order-label')
+  if (notice) notice.style.display = currentUser ? 'none' : 'block'
+  if (label)  label.textContent    = currentUser ? 'Place Order' : 'Sign In to Order'
 }
 
 
@@ -2321,6 +2367,15 @@ function updateNoteCount() {
 
 async function placeOrder() {
   if (cartItems.length === 0) return
+
+  // Orders must be attached to an account — otherwise there is no way
+  // to contact the buyer, and they can never see the order again.
+  if (!currentUser) {
+    afterLoginPage = 'cart'
+    showToast('Please sign in to place your order.', 'info')
+    goPage('login')
+    return
+  }
   const orderId   = 'JBI-' + Date.now().toString(36).toUpperCase()
   const total     = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
   const itemsText = cartItems.map(i => `${i.name} (${i.size}) x${i.qty} — ${i.price * i.qty} AED`).join('\n')
@@ -2996,11 +3051,11 @@ function loadSavedDesign(idx) {
   const s = saves[idx]; if (!s) return
   GRID_SIZE = s.size
   grid = s.grid.map(r => [...r])
-  drawHistory = [cloneGrid(grid)]; histIdx = 0
   zoom = 1
   // Restore the board it was made on (older saves predate boards → square)
   boardShape = s.shape || 'square'
   boardId    = s.board || (BOARDS.find(b => b.shape === 'square' && b.size === s.size) || {}).id || null
+  resetHistory()
   syncBoardBtns()
   const b  = BOARDS.find(x => x.id === boardId)
   const sg = document.getElementById('stat-grid')
@@ -3254,7 +3309,7 @@ function loadDesignToGrid(design) {
     }
   }
   grid = newGrid
-  drawHistory = [cloneGrid(grid)]; histIdx = 0
+  resetHistory()
   // Remember the real photo so the order page can show it instead of
   // the bead mock-up — but only while the design is untouched.
   detailPhoto = design.img ? { img: design.img, snapshot: cloneGrid(grid) } : null
@@ -3313,39 +3368,17 @@ function addReadyMade(d) {
   goPage('cart')
 }
 
-/* ── Sample frog ─────────────────────────── */
+/* ── Sample design ───────────────────────────
+   Loads a real piece onto a real board. The old sample was a
+   29-wide frog, which no longer fits any of the four boards.
+   ─────────────────────────────────────────── */
 function loadSampleFrog() {
-  const B='#1A1A1A',G='#38B000',dG='#1A6B00',P='#FF69B4',Y='#FFE600',W='#FFFFFF'
-  const rows=[
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,B,B,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,B,B,0,0,0],
-    [0,0,B,G,G,B,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,B,G,G,B,0,0],
-    [0,B,G,W,B,G,B,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,B,G,B,W,G,B,0],
-    [0,B,G,G,G,G,B,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,B,G,G,G,G,B,0],
-    [0,0,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,0,0],
-    [0,B,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B,0],
-    [B,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B],
-    [B,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B],
-    [B,G,G,P,P,G,G,G,G,G,Y,Y,Y,Y,Y,Y,Y,Y,Y,G,G,G,G,G,P,P,G,G,B],
-    [B,G,G,P,G,G,G,G,G,G,Y,Y,Y,Y,Y,Y,Y,Y,Y,G,G,G,G,G,G,P,G,G,B],
-    [B,G,G,G,G,G,G,G,G,G,Y,Y,Y,Y,Y,Y,Y,Y,Y,G,G,G,G,G,G,G,G,G,B],
-    [B,G,dG,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,dG,G,G,B],
-    [0,B,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B,0],
-    [0,0,B,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B,0,0],
-    [0,B,G,G,B,B,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,G,B,B,G,G,G,B,0],
-    [B,G,G,G,G,G,B,B,G,G,G,G,G,G,G,G,G,G,G,G,B,B,G,G,G,G,G,G,B],
-    [B,G,G,G,G,G,G,G,B,B,G,G,G,G,G,G,G,G,B,B,G,G,G,G,G,G,G,G,B],
-    [0,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-  ]
-  const newGrid = makeGrid(29)
-  rows.forEach((row, r) => row.forEach((cell, c) => {
-    if (r < 29 && c < 29) newGrid[r][c] = cell || null
-  }))
-  if (GRID_SIZE !== 29) setGridSize(29)
-  grid = newGrid
-  drawHistory = [cloneGrid(grid)]; histIdx = 0
-  drawCanvas(); runAI()
+  const sample = DESIGNS.find(d => d.name === 'Rainbow Arc') || DESIGNS[0]
+  if (!sample || !sample.pat) return
+  setBoard('large')
+  loadDesignToGrid(sample)
+  drawCanvas()
+  showToast('Sample loaded — try recolouring it!', 'success')
 }
 
 /* ── Init ──────────────────────────────────── */
