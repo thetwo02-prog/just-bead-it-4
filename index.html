@@ -1923,6 +1923,17 @@ function updateNavForAuth() {
   }
 }
 
+/* Ordering and saving both require an account, so orders can be tied to
+   a real customer and saved work isn't stranded on one device.
+   Pass returnTo and they land back where they were after signing in. */
+function requireSignIn(action, returnTo) {
+  if (currentUser) return true
+  if (returnTo) afterLoginPage = returnTo
+  showToast('Please sign in to ' + action + '.', 'info')
+  goPage('login')
+  return false
+}
+
 function loginUser(user) {
   currentUser = user
   updateNavForAuth()
@@ -2370,12 +2381,7 @@ async function placeOrder() {
 
   // Orders must be attached to an account — otherwise there is no way
   // to contact the buyer, and they can never see the order again.
-  if (!currentUser) {
-    afterLoginPage = 'cart'
-    showToast('Please sign in to place your order.', 'info')
-    goPage('login')
-    return
-  }
+  if (!requireSignIn('place your order', 'cart')) return
   const orderId   = 'JBI-' + Date.now().toString(36).toUpperCase()
   const total     = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
   const itemsText = cartItems.map(i => `${i.name} (${i.size}) x${i.qty} — ${i.price * i.qty} AED`).join('\n')
@@ -2958,6 +2964,7 @@ const SUMMER_SWEETS = [
 ]
 /* ── Save ──────────────────────────────────── */
 function saveDesign() {
+  if (!requireSignIn('save your design', 'builder')) return
   const snap = document.createElement('canvas')
   snap.width = 200; snap.height = 200
   const ctx2 = snap.getContext('2d')
@@ -2986,6 +2993,7 @@ function saveDesign() {
 
 function saveBundleItem() {
   const b = currentBundle()
+  if (!requireSignIn('save this bundle', b.id)) return
   const price = bundleStyle === 'magnet' ? b.magnet : b.price
   const saves = JSON.parse(localStorage.getItem('jbi_saves') || '[]')
   saves.unshift({
