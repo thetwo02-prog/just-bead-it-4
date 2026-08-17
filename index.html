@@ -305,6 +305,16 @@ a { text-decoration: none; color: inherit; }
 .grid-size-btns { display: flex; gap: 6px; }
 .board-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
+/* One-time code entry */
+.otp-digit {
+  width: 44px; height: 54px; text-align: center;
+  font-family: inherit; font-size: 22px; font-weight: 900; color: var(--dark);
+  border: 1.5px solid var(--border); border-radius: 12px; background: var(--cream);
+  transition: border-color .12s, background .12s;
+}
+.otp-digit:focus { outline: none; border-color: var(--purple); background: var(--card); }
+@media (max-width: 420px) { .otp-digit { width: 38px; height: 48px; font-size: 19px; } }
+
 /* Order progress buttons (admin) */
 .status-btn {
   flex: 1; padding: 9px 4px; border-radius: 10px;
@@ -459,6 +469,11 @@ a { text-decoration: none; color: inherit; }
   .btn-sm-lime { display: none; }
   /* Hide user name text, keep avatar */
   #nav-user-name { display: none; }
+  /* On narrow phones the wordmark and the centred page title collide.
+     The logo mark alone still gets you home. */
+  @media (max-width: 430px) {
+    .nav-wordmark { display: none; }
+  }
 
   /* ── Hero ─────────────────────────────────────────── */
   .hero {
@@ -807,7 +822,6 @@ a { text-decoration: none; color: inherit; }
   <div class="section" id="collections-section">
     <div class="sec-header">
       <h2 class="sec-h2">Popular Designs</h2>
-      <button class="sec-link" onclick="goPage('bundles')">View all →</button>
     </div>
     <div class="designs-grid" id="designs-grid"></div>
   </div>
@@ -1093,23 +1107,6 @@ a { text-decoration: none; color: inherit; }
             style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;transition:.15s;background:transparent;color:var(--muted)">Sign Up</button>
         </div>
 
-        <!-- Social buttons -->
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
-          <button onclick="handleGoogleAuth()"
-            style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:700;color:#3c4043;cursor:pointer;transition:.15s"
-            onmouseover="this.style.background='#f8f8f8'" onmouseout="this.style.background='#fff'">
-            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
-            Continue with Google
-          </button>
-        </div>
-
-        <!-- Divider -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-          <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">or email</span>
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-        </div>
-
         <!-- Email form -->
         <div style="display:flex;flex-direction:column;gap:12px">
           <div id="auth-name-wrap" style="display:none">
@@ -1138,8 +1135,30 @@ a { text-decoration: none; color: inherit; }
         <div style="text-align:center;padding:12px 0 24px">
           <div style="font-size:52px;margin-bottom:16px">📬</div>
           <h2 style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--dark);margin-bottom:10px">Check your email</h2>
-          <p id="otp-sent-to" style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:6px"></p>
-          <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:28px">Click the <strong>Sign in</strong> link in the email — you'll be logged in instantly.</p>
+          <p id="otp-sent-to" style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px"></p>
+
+          <!-- 6-digit code -->
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">
+            <input class="otp-digit" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1"
+                   oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)" onpaste="otpPaste(event)">
+            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
+                   oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)" onpaste="otpPaste(event)">
+            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
+                   oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)" onpaste="otpPaste(event)">
+            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
+                   oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)" onpaste="otpPaste(event)">
+            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
+                   oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)" onpaste="otpPaste(event)">
+            <input class="otp-digit" type="text" inputmode="numeric" maxlength="1"
+                   oninput="otpDigitInput(this)" onkeydown="otpDigitKeydown(this,event)" onpaste="otpPaste(event)">
+          </div>
+          <p id="otp-err" style="display:none;font-size:12.5px;font-weight:700;color:#DD1111;margin-bottom:10px"></p>
+
+          <button id="otp-verify-btn" class="btn-lime full" style="font-size:15px;padding:15px;margin-bottom:14px" onclick="verifyOTP()">Verify Code</button>
+
+          <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px">
+            Code not working? The same email also has a <strong>Sign in</strong> link — clicking that logs you straight in.
+          </p>
           <button class="btn-outline full" style="font-size:13px;padding:12px;margin-bottom:10px" onclick="resendOTP()">Resend email</button>
           <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
             <span style="cursor:pointer" onclick="backToLogin()">← Back to sign in</span>
@@ -1533,13 +1552,54 @@ const BOARDS = [
 function shapeContains(shape, nx, ny) {
   if (shape === 'circle') return nx*nx + ny*ny <= 1
   if (shape === 'heart') {
-    // Classic implicit heart: (x²+y²−1)³ − x²y³ ≤ 0, proportioned to match
-    // the real board — wider than tall, with a deep cleft between the lobes.
-    const x = nx * 0.95, y = -ny * 1.15 + 0.35
+    // Classic implicit heart: (x²+y²−1)³ − x²y³ ≤ 0. These constants are
+    // tuned so the lobes stay round and separated and the point stays a
+    // point — flatten x much below 1.3 and it balloons into a blob.
+    const x = nx * 1.32, y = -ny * 1.12 + 0.15
     const t = x*x + y*y - 1
     return t*t*t - x*x*y*y*y <= 0
   }
   return true   // square — every peg exists
+}
+
+/* Board masks are built once per shape+size and cached. Beyond avoiding
+   a formula call per peg per frame, it lets us tidy the raw curve —
+   a bare heart equation tapers to a 1-peg spike no real board has. */
+const _maskCache = {}
+
+function boardMask(shape, n) {
+  const key = shape + n
+  if (_maskCache[key]) return _maskCache[key]
+
+  const mid = (n - 1) / 2
+  const m = []
+  for (let r = 0; r < n; r++) {
+    const row = []
+    for (let c = 0; c < n; c++) {
+      row.push(shapeContains(shape, (c - mid) / (n / 2), (r - mid) / (n / 2)))
+    }
+    m.push(row)
+  }
+
+  // Blunt the tip: clear trailing rows narrower than 3 pegs
+  for (let r = n - 1; r >= 0; r--) {
+    const w = m[r].filter(Boolean).length
+    if (w > 0 && w < 3) m[r] = m[r].map(() => false)
+    else if (w >= 3) break
+  }
+  // Drop pegs clinging on by a single neighbour
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (!m[r][c]) continue
+      const nb = [[0,-1],[0,1],[-1,0],[1,0]].filter(([dy, dx]) => {
+        const Y = r + dy, X = c + dx
+        return Y >= 0 && Y < n && X >= 0 && X < n && m[Y][X]
+      }).length
+      if (nb < 2) m[r][c] = false
+    }
+  }
+  _maskCache[key] = m
+  return m
 }
 
 /* Is there a peg at this cell on the current board? */
@@ -1547,8 +1607,8 @@ function inBoard(row, col, shape, n) {
   shape = shape || boardShape
   n     = n || GRID_SIZE
   if (shape === 'square') return true
-  const mid = (n - 1) / 2
-  return shapeContains(shape, (col - mid) / (n / 2), (row - mid) / (n / 2))
+  if (row < 0 || row >= n || col < 0 || col >= n) return false
+  return boardMask(shape, n)[row][col]
 }
 
 /* Total pegs available on a board — the real capacity. */
@@ -1869,7 +1929,6 @@ function updateCartBadge() {
 const EMAILJS_PUBLIC_KEY      = 'YOUR_PUBLIC_KEY'       // Account → API Keys
 const EMAILJS_SERVICE_ID      = 'YOUR_SERVICE_ID'       // Email Services tab
 const EMAILJS_TEMPLATE_ID     = 'YOUR_TEMPLATE_ID'      // Email Templates tab (orders)
-const EMAILJS_OTP_TEMPLATE_ID = 'YOUR_OTP_TEMPLATE_ID'  // Email Templates tab (OTP) — variables: {{to_email}} {{otp_code}} {{user_name}}
 const OWNER_EMAIL             = 'neriah0301@gmail.com'
 
 ;(function() {
@@ -1887,6 +1946,18 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const { createClient } = supabase
 const db = createClient(SUPABASE_URL, SUPABASE_KEY)
 
+/* ── Escaping ────────────────────────────────
+   Anything that originated with a customer — their name, a design
+   name, anything inside an order's items JSON — must be escaped
+   before it reaches innerHTML. Orders are insertable by anyone, so
+   their contents are untrusted even though they land in your admin.
+   ─────────────────────────────────────────── */
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 /* ── Auth system ───────────────────────────── */
 let currentUser = null
 let authTab = 'signin'
@@ -1899,7 +1970,8 @@ async function _setCurrentUser(user) {
   // select('*') so an unknown column never breaks sign-in
   const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single()
 
-  // Google supplies full_name / name / picture; email sign-ups supply neither
+  // Name comes from the profiles row (set at sign-up). The metadata
+  // fallbacks are harmless leftovers in case an account was made another way.
   const name = (profile && profile.name)
             || meta.full_name || meta.name
             || (user.email ? user.email.split('@')[0] : 'Friend')
@@ -1976,12 +2048,6 @@ function requireSignIn(action, returnTo) {
   return false
 }
 
-function loginUser(user) {
-  currentUser = user
-  updateNavForAuth()
-  goPage('home')
-}
-
 function signOut() {
   showConfirm('Sign out of Just Bead It?', 'Sign Out', async () => {
     await db.auth.signOut()
@@ -2012,7 +2078,7 @@ async function renderMyOrders() {
     wrap.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;text-align:center">
       <div style="font-size:32px;margin-bottom:8px">🧺</div>
       <div style="font-size:13.5px;font-weight:700;color:var(--dark)">No orders yet</div>
-      <button onclick="goPage('browse')" style="margin-top:12px;padding:10px 18px;border-radius:99px;border:none;background:var(--lime);font-family:inherit;font-size:12.5px;font-weight:800;color:var(--dark);cursor:pointer">Browse designs</button>
+      <button onclick="goPage('home')" style="margin-top:12px;padding:10px 18px;border-radius:99px;border:none;background:var(--lime);font-family:inherit;font-size:12.5px;font-weight:800;color:var(--dark);cursor:pointer">Browse designs</button>
     </div>`
     return
   }
@@ -2026,17 +2092,17 @@ async function renderMyOrders() {
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
         <div>
-          <div style="font-size:12.5px;font-weight:800;color:var(--dark)">${o.id}</div>
-          <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${o.date || ''}</div>
+          <div style="font-size:12.5px;font-weight:800;color:var(--dark)">${esc(o.id)}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${esc(o.date || '')}</div>
         </div>
         <span style="background:${st.bg};color:${st.fg};font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;padding:5px 10px;border-radius:99px;white-space:nowrap">${st.label}</span>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:3px">
-        ${items.map(i => `<div style="font-size:12.5px;font-weight:700;color:var(--dark)">${i.name} <span style="font-weight:400;color:var(--muted)">× ${i.qty}</span></div>`).join('')}
+        ${items.map(i => `<div style="font-size:12.5px;font-weight:700;color:var(--dark)">${esc(i.name)} <span style="font-weight:400;color:var(--muted)">× ${esc(i.qty)}</span></div>`).join('')}
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
         <span style="font-size:11.5px;color:var(--muted)">${o.status === 'Done' ? 'Ready — we’ll be in touch' : 'Delivery date confirmed by email'}</span>
-        <strong style="font-size:15px;font-weight:900;color:var(--purple)">${o.total} AED</strong>
+        <strong style="font-size:15px;font-weight:900;color:var(--purple)">${esc(o.total)} AED</strong>
       </div>`
     wrap.appendChild(card)
   })
@@ -2094,7 +2160,7 @@ async function renderProfile() {
       <div id="profile-orders"></div>
     </div>
 
-    <!-- Contact number. Google never supplies a phone number, so we ask. -->
+    <!-- Contact number, so you can reach a customer about their order. -->
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:24px">
       <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Contact Number</div>
       <div style="display:flex;gap:8px">
@@ -2217,27 +2283,31 @@ async function renderAdminOrders() {
     card.className = 'admin-order'
     card.style.cssText = 'background:var(--card);border-radius:20px;border:1px solid var(--border);padding:20px;margin-bottom:16px'
     const items = order.items || []
-    const thumbs = items.filter(i => i.thumb).map(i =>
-      `<img src="${i.thumb}" style="width:80px;height:80px;border-radius:10px;image-rendering:pixelated;border:1px solid var(--border)">`
-    ).join('')
+    // Only render thumbnails that are genuinely inline images. An order
+    // row can be inserted by anyone, so a crafted thumb could otherwise
+    // carry javascript: or an onerror handler into this page.
+    const thumbs = items
+      .filter(i => typeof i.thumb === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(i.thumb))
+      .map(i => `<img src="${esc(i.thumb)}" style="width:80px;height:80px;border-radius:10px;image-rendering:pixelated;border:1px solid var(--border)">`)
+      .join('')
 
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div>
           <div style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:${order.order_type === 'custom' ? 'var(--purple)' : 'var(--lime-d)'};margin-bottom:4px">${order.order_type === 'custom' ? 'Custom Order' : 'Bundle Order'}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--dark)">${order.id}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">${order.date || ''}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--dark)">${esc(order.id)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(order.date || '')}</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:20px;font-weight:900;color:var(--purple)">${order.total} AED</div>
+          <div style="font-size:20px;font-weight:900;color:var(--purple)">${esc(order.total)} AED</div>
         </div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">${thumbs || '<p style="font-size:12px;color:var(--muted)">No thumbnail</p>'}</div>
       <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:4px">
-        ${items.map(i => `<div style="font-size:13px;font-weight:700">${i.name} <span style="font-weight:400;color:var(--muted)">${i.size} · Qty ${i.qty} · ${i.price * i.qty} AED</span></div>`).join('')}
+        ${items.map(i => `<div style="font-size:13px;font-weight:700">${esc(i.name)} <span style="font-weight:400;color:var(--muted)">${esc(i.size)} · Qty ${esc(i.qty)} · ${esc(i.price * i.qty)} AED</span></div>`).join('')}
       </div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">
-        <strong style="color:var(--dark)">${order.customer_name || 'Guest'}</strong>${order.customer_email ? ' · ' + order.customer_email : ''}
+        <strong style="color:var(--dark)">${esc(order.customer_name || 'Guest')}</strong>${order.customer_email ? ' · ' + esc(order.customer_email) : ''}
       </div>
       ${order.note ? `
       <div style="margin-top:12px;padding:12px 14px;background:#FFF8E1;border:1.5px solid #FFE08A;border-radius:12px">
@@ -2275,27 +2345,6 @@ function switchAuthTab(tab) {
   document.getElementById('auth-heading').textContent     = isSignup ? 'Create account' : 'Welcome back'
   document.getElementById('auth-sub').textContent         = isSignup ? 'Join Just Bead It today' : 'Sign in to your Just Bead It account'
   document.getElementById('auth-err').style.display = 'none'
-}
-
-/* ── Google sign-in ──────────────────────────
-   Real OAuth through Supabase. Google returns the account's name,
-   email and avatar; it does NOT expose a phone number, so contact
-   details are collected separately on the profile page.
-   ─────────────────────────────────────────── */
-async function handleGoogleAuth() {
-  const err = document.getElementById('auth-err')
-  const showErr = m => { if (err) { err.textContent = m; err.style.display = 'block' } }
-  showErr(''); if (err) err.style.display = 'none'
-
-  const { error } = await db.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin + window.location.pathname,
-      queryParams: { prompt: 'select_account' }
-    }
-  })
-  // On success the browser navigates to Google, so we only get here on failure
-  if (error) showErr('Google sign-in isn’t set up yet. Use your email instead.')
 }
 
 async function handleEmailAuth() {
@@ -2354,9 +2403,88 @@ async function handleEmailAuth() {
 
   document.getElementById('auth-form-panel').style.display = 'none'
   document.getElementById('otp-panel').style.display = 'block'
-  document.getElementById('otp-sent-to').textContent = 'We sent a sign-in link to ' + email
+  document.getElementById('otp-sent-to').textContent = 'We sent a 6-digit code to ' + email
+  const errEl = document.getElementById('otp-err')
+  if (errEl) errEl.style.display = 'none'
+  otpInputs().forEach(i => { i.value = ''; i.style.borderColor = '' })
+  const first = otpInputs()[0]
+  if (first) first.focus()
 }
 
+
+/* ── One-time code entry ─────────────────────
+   The sign-in email carries both a 6-digit code and a magic link.
+   Either works; the code is here, the link is the fallback.
+   ─────────────────────────────────────────── */
+function otpInputs() { return [...document.querySelectorAll('.otp-digit')] }
+function otpCode()   { return otpInputs().map(i => i.value).join('') }
+
+function otpDigitInput(el) {
+  el.value = el.value.replace(/\D/g, '').slice(-1)
+  if (el.value && el.nextElementSibling) el.nextElementSibling.focus()
+  if (otpCode().length === 6) verifyOTP()
+}
+
+function otpDigitKeydown(el, e) {
+  if (e.key === 'Backspace' && !el.value && el.previousElementSibling) {
+    el.previousElementSibling.focus()
+    el.previousElementSibling.value = ''
+    e.preventDefault()
+  }
+  if (e.key === 'ArrowLeft'  && el.previousElementSibling) el.previousElementSibling.focus()
+  if (e.key === 'ArrowRight' && el.nextElementSibling)     el.nextElementSibling.focus()
+  if (e.key === 'Enter' && otpCode().length === 6) verifyOTP()
+}
+
+/* Pasting the whole code — or letting the phone autofill it — should just work */
+function otpPaste(e) {
+  const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6)
+  if (!text) return
+  e.preventDefault()
+  const ins = otpInputs()
+  ins.forEach((el, i) => { el.value = text[i] || '' })
+  const next = ins[Math.min(text.length, 5)]
+  if (next) next.focus()
+  if (text.length === 6) verifyOTP()
+}
+
+let otpVerifying = false
+async function verifyOTP() {
+  if (otpVerifying) return
+  const code  = otpCode()
+  const errEl = document.getElementById('otp-err')
+  const btn   = document.getElementById('otp-verify-btn')
+  const fail  = msg => {
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block' }
+    otpInputs().forEach(i => { i.value = ''; i.style.borderColor = '#DD1111' })
+    const first = otpInputs()[0]; if (first) first.focus()
+  }
+  if (errEl) errEl.style.display = 'none'
+
+  if (code.length < 6) { if (errEl) { errEl.textContent = 'Enter all 6 digits.'; errEl.style.display = 'block' } return }
+  if (!pendingOTPEmail) { fail('Session expired — request a new code.'); return }
+
+  otpVerifying = true
+  if (btn) { btn.textContent = 'Verifying…'; btn.disabled = true }
+
+  const { data, error } = await db.auth.verifyOtp({
+    email: pendingOTPEmail, token: code, type: 'email'
+  })
+
+  otpVerifying = false
+  if (btn) { btn.textContent = 'Verify Code'; btn.disabled = false }
+
+  if (error) { fail('That code is incorrect or has expired. Try again, or use the link in the email.'); return }
+
+  // Save the name captured at sign-up so it isn't lost
+  if (pendingOTPName && data && data.user) {
+    await db.from('profiles').upsert({ id: data.user.id, name: pendingOTPName })
+    pendingOTPName = null
+  }
+  pendingOTPEmail = null
+  otpInputs().forEach(i => { i.value = ''; i.style.borderColor = '' })
+  // onAuthStateChange handles the redirect and nav refresh from here
+}
 
 async function resendOTP() {
   if (!pendingOTPEmail) return
@@ -2535,10 +2663,10 @@ function showOrderPlaced(orderId, items, total, note) {
     <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px">
       <div style="display:flex;justify-content:space-between;margin-bottom:12px">
         <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Order number</span>
-        <strong style="font-size:13px;color:var(--dark)">${orderId}</strong>
+        <strong style="font-size:13px;color:var(--dark)">${esc(orderId)}</strong>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;flex-direction:column;gap:4px">
-        ${items.map(i => `<div style="font-size:13px;font-weight:700;color:var(--dark)">${i.name} <span style="font-weight:400;color:var(--muted)">× ${i.qty} · ${i.price * i.qty} AED</span></div>`).join('')}
+        ${items.map(i => `<div style="font-size:13px;font-weight:700;color:var(--dark)">${esc(i.name)} <span style="font-weight:400;color:var(--muted)">× ${esc(i.qty)} · ${esc(i.price * i.qty)} AED</span></div>`).join('')}
       </div>
       ${note ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px">Your note</div>
@@ -3445,6 +3573,7 @@ function loadDesignToGrid(design) {
   }
   grid = newGrid
   resetHistory()
+  qty = 1   // a quantity set on the last design shouldn't carry over
   // Remember the real photo so the order page can show it instead of
   // the bead mock-up — but only while the design is untouched.
   detailPhoto = design.img ? { img: design.img, snapshot: cloneGrid(grid) } : null
