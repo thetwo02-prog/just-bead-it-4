@@ -1200,11 +1200,24 @@ a { text-decoration: none; color: inherit; }
       <div class="feat-card" style="padding:20px 24px">
         <h3 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px">Order Summary</h3>
         <div id="cart-list"></div>
+        <div id="cart-fee-row" style="display:none;justify-content:space-between;align-items:center;padding:14px 0 0;font-size:13px">
+          <span id="cart-fee-label" style="font-weight:700;color:var(--muted)"></span>
+          <span id="cart-fee-val" style="font-weight:800;color:var(--purple)"></span>
+        </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 0">
           <span style="font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--dark)">Total</span>
           <span id="cart-total" style="font-size:22px;font-weight:900;color:var(--purple)">0 AED</span>
         </div>
       </div>
+      <!-- Delivery speed -->
+      <div class="feat-card" style="padding:20px 24px;margin-top:16px">
+        <h3 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px">Delivery Speed</h3>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.45">
+          Need it sooner? Rush orders jump the queue.
+        </p>
+        <div id="speed-options" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
 
       <!-- Special requests -->
       <div class="feat-card" style="padding:20px 24px;margin-top:16px">
@@ -2281,6 +2294,10 @@ async function renderAdminOrders() {
   visible.forEach(order => {
     const card = document.createElement('div')
     card.className = 'admin-order'
+    const sp = DELIVERY_SPEEDS.find(x => x.id === order.delivery)
+    const speedBadge = (sp && sp.fee)
+      ? '<div style="display:inline-block;background:#FFE08A;color:#7A5B00;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:99px;margin-bottom:5px">' + esc(sp.label) + ' &middot; ' + esc(sp.days) + '</div>'
+      : ''
     card.style.cssText = 'background:var(--card);border-radius:20px;border:1px solid var(--border);padding:20px;margin-bottom:16px'
     const items = order.items || []
     // Only render thumbnails that are genuinely inline images. An order
@@ -2294,6 +2311,7 @@ async function renderAdminOrders() {
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div>
+          ${speedBadge}
           <div style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:${order.order_type === 'custom' ? 'var(--purple)' : 'var(--lime-d)'};margin-bottom:4px">${order.order_type === 'custom' ? 'Custom Order' : 'Bundle Order'}</div>
           <div style="font-size:13px;font-weight:700;color:var(--dark)">${esc(order.id)}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(order.date || '')}</div>
@@ -2532,6 +2550,46 @@ function addToCart() {
   goPage('cart')
 }
 
+/* ── Delivery speed ──────────────────────────
+   Standard is free; rush adds a surcharge on top of the item total.
+   The chosen speed rides along on the order so it shows in the admin.
+   ─────────────────────────────────────────── */
+const DELIVERY_SPEEDS = [
+  { id:'standard', label:'Standard',  days:'3–5 days', fee:0  },
+  { id:'fast',     label:'Rush',      days:'2–3 days', fee:5  },
+  { id:'express',  label:'Next day',  days:'1 day',    fee:10 },
+]
+let deliverySpeed = 'standard'
+
+function currentSpeed() {
+  return DELIVERY_SPEEDS.find(s => s.id === deliverySpeed) || DELIVERY_SPEEDS[0]
+}
+
+function setDeliverySpeed(id) {
+  deliverySpeed = id
+  renderCart()
+}
+
+function renderSpeedOptions() {
+  const wrap = document.getElementById('speed-options')
+  if (!wrap) return
+  wrap.innerHTML = DELIVERY_SPEEDS.map(s => {
+    const on = s.id === deliverySpeed
+    return `<button onclick="setDeliverySpeed('${s.id}')"
+      style="display:flex;align-items:center;gap:11px;width:100%;padding:12px 14px;border-radius:12px;cursor:pointer;font-family:inherit;text-align:left;
+             border:1.5px solid ${on ? 'var(--purple)' : 'var(--border)'};
+             background:${on ? 'rgba(139,92,246,.09)' : 'var(--card)'}">
+      <span style="width:17px;height:17px;border-radius:50%;flex-shrink:0;border:2px solid ${on ? 'var(--purple)' : 'var(--border)'};
+                   background:${on ? 'var(--purple)' : 'transparent'};box-shadow:${on ? 'inset 0 0 0 3px var(--card)' : 'none'}"></span>
+      <span style="flex:1">
+        <span style="display:block;font-size:13.5px;font-weight:800;color:var(--dark)">${s.label}</span>
+        <span style="display:block;font-size:11.5px;color:var(--muted);margin-top:1px">${s.days}</span>
+      </span>
+      <span style="font-size:13px;font-weight:900;color:${s.fee ? 'var(--purple)' : 'var(--muted)'}">${s.fee ? '+' + s.fee + ' AED' : 'Free'}</span>
+    </button>`
+  }).join('')
+}
+
 function renderCart() {
   const list  = document.getElementById('cart-list')
   const empty = document.getElementById('cart-empty')
@@ -2563,7 +2621,18 @@ function renderCart() {
     row.querySelector('.cart-item-name').textContent = item.name
     list.appendChild(row)
   })
-  sum.textContent = total + ' AED'
+  // Rush surcharge sits on top of the item total
+  renderSpeedOptions()
+  const fee = currentSpeed().fee
+  sum.textContent = (total + fee) + ' AED'
+  const feeRow = document.getElementById('cart-fee-row')
+  if (feeRow) {
+    feeRow.style.display = fee ? 'flex' : 'none'
+    const fl = document.getElementById('cart-fee-label')
+    const fv = document.getElementById('cart-fee-val')
+    if (fl) fl.textContent = currentSpeed().label + ' delivery'
+    if (fv) fv.textContent = '+' + fee + ' AED'
+  }
 
   // Ordering requires an account, so say that up front rather than
   // letting someone fill a cart and hit a wall at checkout.
@@ -2593,7 +2662,9 @@ async function placeOrder() {
   // to contact the buyer, and they can never see the order again.
   if (!requireSignIn('place your order', 'cart')) return
   const orderId   = 'JBI-' + Date.now().toString(36).toUpperCase()
-  const total     = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
+  const speed     = currentSpeed()
+  const itemTotal = cartItems.reduce((s, i) => s + i.price * i.qty, 0)
+  const total     = itemTotal + speed.fee
   const itemsText = cartItems.map(i => `${i.name} (${i.size}) x${i.qty} — ${i.price * i.qty} AED`).join('\n')
   const date      = new Date().toLocaleString()
   const noteEl    = document.getElementById('order-note')
@@ -2612,12 +2683,14 @@ async function placeOrder() {
     date,
     order_type:     hasCustom ? 'custom' : 'standard',
     status:         'Not Started',
+    delivery:       speed.id,
+    delivery_fee:   speed.fee,
     note:           note || null
   })
   if (dbErr) showToast('DB error: ' + dbErr.message, 'error')
 
   // Also save locally for the session's profile count
-  const order = { id: orderId, items: cartItems.slice(), total, date, note, status: 'New' }
+  const order = { id: orderId, items: cartItems.slice(), total, date, note, delivery: speed.id, status: 'New' }
   const orders = JSON.parse(localStorage.getItem('jbi_orders') || '[]')
   orders.unshift(order)
   localStorage.setItem('jbi_orders', JSON.stringify(orders))
@@ -3354,7 +3427,7 @@ function renderDetailCanvas() {
   const photo = document.getElementById('detail-photo')
   if (photo) {
     if (detailPhotoStillValid()) {
-      photo.src = detailPhoto.img
+      setPhotoSrc(photo, detailPhoto.img)
       photo.style.display = 'block'
       canvas.style.display = 'none'
       return
@@ -3611,14 +3684,26 @@ function renderHomeThumbs() {
     }
     card.innerHTML = `
       <div class="d-thumb">${d.img
-        ? `<img src="${d.img}" alt="${d.name}" loading="lazy">`
+        ? `<img alt="${esc(d.name)}" loading="lazy">`
         : `<canvas width="144" height="144" style="image-rendering:pixelated;width:100%;height:100%"></canvas>`}</div>
       <div class="d-name">${d.name}</div>
       <div style="margin:4px 0 6px"><span class="tag ${d.tag}">${d.size}</span></div>
       <div class="d-price">${d.price}</div>`
     grid2.appendChild(card)
-    if (!d.img) drawThumb(card.querySelector('canvas'), d)
+    if (d.img) setPhotoSrc(card.querySelector('img'), d.img)
+    else       drawThumb(card.querySelector('canvas'), d)
   })
+}
+
+/* Depending on how a folder upload lands, photos end up either in
+   images/ or flattened to the site root. Rather than the picture
+   silently blanking when the two disagree, try the declared path and
+   fall back to the other one. */
+function setPhotoSrc(el, src) {
+  if (!el) return
+  const alt = src.includes('/') ? src.split('/').pop() : 'images/' + src
+  el.onerror = () => { el.onerror = null; el.src = alt }
+  el.src = src
 }
 
 /* A finished piece bought as-is, rather than designed from scratch. */
