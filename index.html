@@ -1046,7 +1046,7 @@ a { text-decoration: none; color: inherit; }
             </div>
             <div style="display:flex;justify-content:space-between;font-size:12px">
               <span style="color:var(--muted)">Grid size</span>
-              <strong id="stat-grid">29 × 29</strong>
+              <strong id="stat-grid">26 × 26</strong>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:12px">
               <span style="color:var(--muted)">Fill density</span>
@@ -1659,6 +1659,16 @@ function syncBoardBtns() {
 /* ── Canvas ────────────────────────────────── */
 let canvasEl, ctx
 
+/* The stats panel must always name the board actually in use.
+   It used to be a hardcoded default that only corrected itself when you
+   switched boards, so a fresh load showed the wrong size. */
+function syncBoardLabel() {
+  const sg = document.getElementById('stat-grid')
+  if (!sg) return
+  const b = BOARDS.find(x => x.id === boardId)
+  sg.textContent = (b && b.shape !== 'square') ? b.name : GRID_SIZE + ' × ' + GRID_SIZE
+}
+
 function initCanvas() {
   canvasEl = document.getElementById('bead-canvas')
   if (!canvasEl) return
@@ -1666,6 +1676,7 @@ function initCanvas() {
   if (histIdx < 0) resetHistory()   // seed undo with the starting board
   resizeCanvas()
   bindCanvasEvents()
+  syncBoardLabel()
   drawCanvas()
 }
 
@@ -3513,17 +3524,22 @@ const DESIGNS = [
     name:'Butterfly', size:'Medium', price:'15 AED', tag:'tag-medium',
     img:'images/butterfly.jpg',
     pat:[
-      [1,1,0,0,0,0,0,0,0,1,1,0],
-      [1,2,1,0,0,0,0,0,1,2,1,0],
-      [2,2,2,1,0,3,3,1,2,2,2,0],
-      [1,2,4,2,3,3,3,3,2,4,2,1],
-      [1,2,2,2,3,3,3,3,2,2,2,1],
-      [0,1,2,2,1,3,3,1,2,2,1,0],
-      [0,0,1,2,2,1,1,2,2,1,0,0],
-      [0,0,0,1,2,2,2,2,1,0,0,0],
-      [0,0,0,0,1,1,1,1,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,1,0,0,0],
+      [0,0,0,0,0,0,0,0,1,1,1,0,0,0],
+      [0,0,0,0,0,0,0,0,2,2,1,1,0,0],
+      [0,0,0,0,0,0,0,0,2,3,2,1,0,0],
+      [0,0,0,0,0,0,0,0,3,3,2,1,0,0],
+      [0,0,0,0,0,0,0,0,4,3,2,2,1,0],
+      [0,0,0,0,0,0,0,0,4,4,3,2,2,1],
+      [0,0,0,0,0,0,0,1,1,4,4,3,2,1],
+      [0,1,2,2,3,4,4,1,1,1,4,3,1,1],
+      [1,1,2,3,3,3,4,4,1,1,1,0,0,0],
+      [1,1,1,2,2,2,3,4,4,1,1,0,0,0],
+      [0,0,1,1,1,2,2,3,3,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,0,1,1,1,0,0,0,0,0],
     ],
-    colors:{'1':'#8B2FC9','2':'#C8A0E8','3':'#1A1A1A','4':'#FFE600'}
+    colors:{'1':'#1A1A1A','2':'#D80606','3':'#F2741A','4':'#FFE016'}
   },
   {
     name:'Rainbow Arc', size:'Medium', price:'15 AED', tag:'tag-medium',
@@ -3573,6 +3589,21 @@ function drawThumb(canvas, design) {
 function loadDesignToGrid(design) {
   const pat = design.pat
   const rows = pat.length, cols = pat[0].length
+
+  // Put it on the smallest SQUARE board it fits. Without this, opening a
+  // design while the circle or heart board is active clips it to that
+  // outline — beads outside the shape simply vanish.
+  const need = Math.max(rows, cols)
+  const fit  = BOARDS.filter(b => b.shape === 'square' && b.size >= need)
+                     .sort((a, b) => a.size - b.size)[0]
+  if (fit) {
+    GRID_SIZE  = fit.size
+    boardId    = fit.id
+    boardShape = 'square'
+    zoom       = 1
+    syncBoardBtns()
+  }
+
   const newGrid = makeGrid(GRID_SIZE)
   const startRow = Math.floor((GRID_SIZE - rows) / 2)
   const startCol = Math.floor((GRID_SIZE - cols) / 2)
@@ -3587,6 +3618,7 @@ function loadDesignToGrid(design) {
   grid = newGrid
   resetHistory()
   qty = 1   // a quantity set on the last design shouldn't carry over
+  syncBoardLabel()
   // Remember the real photo so the order page can show it instead of
   // the bead mock-up — but only while the design is untouched.
   detailPhoto = design.img ? { img: design.img, snapshot: cloneGrid(grid) } : null
@@ -3610,11 +3642,30 @@ function detailPhotoStillValid() {
   return true
 }
 
+/* Size and price come from the bead count, using the same thresholds
+   as runAI(). They used to be hardcoded per design as well, so editing a
+   pattern silently left the card advertising the old price — the smiley
+   showed 5 AED on the card and charged 15 at checkout. */
+function sizeForBeads(beads) {
+  if (beads <= 200)  return { cls:'Small',  price:5,  tag:'tag-small'  }
+  if (beads <= 1200) return { cls:'Medium', price:15, tag:'tag-medium' }
+  return { cls:'Large', price:20, tag:'tag-large' }
+}
+
+function designSpec(d) {
+  // A photo-only design has no pattern to count, so trust what it declares.
+  if (!d.pat) return { cls: d.size, price: parseInt(d.price, 10) || 0, tag: d.tag }
+  let beads = 0
+  for (const row of d.pat) for (const v of row) if (v) beads++
+  return sizeForBeads(beads)
+}
+
 function renderHomeThumbs() {
   const grid2 = document.getElementById('designs-grid')
   if (!grid2 || grid2.children.length > 0) return
   DESIGNS.forEach(d => {
     const card = document.createElement('div')
+    const spec = designSpec(d)
     card.className = 'd-card'
     // A design with `pat` opens in the builder to customise.
     // A photo-only design is a finished piece — straight to the cart.
@@ -3626,9 +3677,9 @@ function renderHomeThumbs() {
       <div class="d-thumb">${d.img
         ? `<img alt="${esc(d.name)}" loading="lazy">`
         : `<canvas width="144" height="144" style="image-rendering:pixelated;width:100%;height:100%"></canvas>`}</div>
-      <div class="d-name">${d.name}</div>
-      <div style="margin:4px 0 6px"><span class="tag ${d.tag}">${d.size}</span></div>
-      <div class="d-price">${d.price}</div>`
+      <div class="d-name">${esc(d.name)}</div>
+      <div style="margin:4px 0 6px"><span class="tag ${spec.tag}">${spec.cls}</span></div>
+      <div class="d-price">${spec.price} AED</div>`
     grid2.appendChild(card)
     if (d.img) setPhotoSrc(card.querySelector('img'), d.img)
     else       drawThumb(card.querySelector('canvas'), d)
@@ -3649,8 +3700,8 @@ function setPhotoSrc(el, src) {
 /* A finished piece bought as-is, rather than designed from scratch. */
 function addReadyMade(d) {
   cartItems.push({
-    name: d.name, price: parseInt(d.price, 10) || 0,
-    size: d.size, qty: 1, thumb: d.img || null, type: 'ready'
+    name: d.name, price: designSpec(d).price,
+    size: designSpec(d).cls, qty: 1, thumb: d.img || null, type: 'ready'
   })
   updateCartBadge()
   showToast(d.name + ' added to cart!', 'success')
