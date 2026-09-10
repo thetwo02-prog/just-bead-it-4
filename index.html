@@ -1448,7 +1448,7 @@ function goPage(id, pushHistory = true) {
   if (id === 'admin')           { renderAdminOrders() }
   updateBottomNav(id)
   window.scrollTo(0, 0)
-  if (pushHistory) history.pushState({ page: id }, '', '#' + id)
+  if (pushHistory) history.pushState({ page: id }, '', id === 'home' ? location.pathname : '#' + id)
 }
 window.addEventListener('popstate', e => {
   const id = (e.state && e.state.page) || 'home'
@@ -3445,20 +3445,23 @@ function changeQty(d) { qty = Math.max(1, Math.min(20, qty+d)); updateDetailUI()
 // All colours are official Pyssla bead shades only
 const DESIGNS = [
   {
-    name:'Shaded Heart', size:'Small', price:'5 AED', tag:'tag-small',
+    name:'Red Heart', size:'Small', price:'5 AED', tag:'tag-small',
     pat:[
-      [0,1,2,1,0,0,0,1,2,1,0,0],
-      [1,2,1,1,1,0,1,2,1,1,1,0],
-      [2,1,1,1,1,1,2,1,1,1,1,1],
-      [1,1,1,1,1,1,1,1,1,1,1,3],
-      [0,1,1,1,1,1,1,1,1,1,3,0],
-      [0,0,1,1,1,1,1,1,1,3,0,0],
-      [0,0,0,1,1,1,1,1,3,0,0,0],
-      [0,0,0,0,1,1,1,3,0,0,0,0],
-      [0,0,0,0,0,1,3,0,0,0,0,0],
-      [0,0,0,0,0,3,0,0,0,0,0,0],
+      [0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0],
+      [0,0,0,2,2,2,1,0,0,1,2,2,2,0,0,0],
+      [1,1,1,2,2,2,1,1,1,1,2,2,2,1,1,1],
+      [1,2,2,2,2,2,2,1,1,2,2,3,3,2,2,1],
+      [1,2,2,2,2,2,2,2,2,2,2,2,3,2,2,1],
+      [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
+      [0,1,1,2,2,2,2,2,2,2,2,2,2,1,1,0],
+      [0,0,1,1,2,2,2,2,2,2,2,2,1,1,0,0],
+      [0,0,0,1,1,2,2,2,2,2,2,1,1,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,1,2,2,1,1,0,0,0,0,0],
+      [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0],
     ],
-    colors:{'1':'#DD1111','2':'#FFB3C6','3':'#990000'}
+    colors:{'1':'#1A1A1A','2':'#D80606','3':'#FFFFFF'}
   },
   {
     name:'Smiley Face', size:'Small', price:'5 AED', tag:'tag-small',
@@ -3727,7 +3730,7 @@ window.addEventListener('load', () => {
   renderHomeThumbs()
   updateNavForAuth()
   updateCartBadge()   // reflect a cart restored from a previous visit
-  history.replaceState({ page: 'home' }, '', '#home')
+  history.replaceState({ page: 'home' }, '', location.pathname)
 })
 
 /* ── Confirm dialog ──────────────────────── */
